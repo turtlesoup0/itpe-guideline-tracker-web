@@ -1,65 +1,110 @@
-import Image from "next/image";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
-export default function Home() {
+/**
+ * 대시보드 메인 페이지.
+ *
+ * 백엔드 연동 전까지 정적 데이터로 레이아웃을 잡습니다.
+ * 추후 fetchAgencies(), fetchGapSummary(), fetchCrawlStatus()로 동적 전환.
+ */
+
+const AGENCIES = [
+  { code: "PIPC", name: "개인정보보호위원회", short: "개인정보위", targets: 2 },
+  { code: "MSIT", name: "과학기술정보통신부", short: "과기정통부", targets: 1 },
+  { code: "KISA", name: "한국인터넷진흥원", short: "KISA", targets: 2 },
+  { code: "NIS", name: "국가사이버안보센터", short: "NCSC", targets: 1 },
+  { code: "FSC", name: "금융위원회", short: "금융위", targets: 3 },
+  { code: "NIA", name: "한국지능정보사회진흥원", short: "NIA", targets: 1 },
+  { code: "MOIS", name: "행정안전부", short: "행안부", targets: 2 },
+  { code: "SPRI", name: "소프트웨어정책연구소", short: "SPRi", targets: 1 },
+  { code: "KCC", name: "방송통신위원회", short: "방통위", targets: 1 },
+];
+
+const STATS = [
+  { label: "추적 기관", value: "9", description: "정부/공공기관" },
+  { label: "크롤링 타겟", value: "14", description: "RSS + BBS + API" },
+  { label: "수집 가이드라인", value: "-", description: "DB 연동 후 표시" },
+  { label: "갭 항목", value: "-", description: "법적 근거 대비 미발행" },
+];
+
+export default function DashboardPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="space-y-8">
+      {/* Title */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">대시보드</h1>
+        <p className="mt-2 text-muted-foreground">
+          정보보안 / 개인정보 / SW 관련 가이드라인의 발행 현황과 갭을 한눈에 파악합니다.
+        </p>
+      </div>
+
+      {/* Stats */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {STATS.map((stat) => (
+          <Card key={stat.label}>
+            <CardHeader className="pb-2">
+              <CardDescription>{stat.label}</CardDescription>
+              <CardTitle className="text-3xl">{stat.value}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground">{stat.description}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Separator />
+
+      {/* Agency Grid */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4">추적 대상 기관</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {AGENCIES.map((agency) => (
+            <Card key={agency.code} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">{agency.short}</CardTitle>
+                  <Badge variant="secondary">{agency.code}</Badge>
+                </div>
+                <CardDescription className="text-xs">{agency.name}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">크롤링 타겟</span>
+                  <span className="font-medium">{agency.targets}개</span>
+                </div>
+                <div className="mt-2 flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">최근 크롤링</span>
+                  <span className="text-xs text-muted-foreground">미실행</span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Architecture Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">시스템 아키텍처</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-2">
+          <p>
+            <strong>2계층 추적:</strong> 고시/훈령(법적 근거) &rarr; 위임 항목 매핑 &rarr;
+            실제 발행 가이드라인 추적 &rarr; 갭 분석
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+          <p>
+            <strong>데이터 수집:</strong> RSS 피드(행안부, 금융위, KISA) + BBS 스크래핑(PIPC, KCC) +
+            법제처 API(MSIT 고시/훈령)
+          </p>
+          <p>
+            <strong>주기:</strong> 일간(RSS), 주간(BBS/법제처), 월간(NIS/NIA/SPRi)
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
