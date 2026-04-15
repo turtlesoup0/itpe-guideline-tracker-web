@@ -79,6 +79,41 @@ export interface GapItem {
   legal_basis_title: string | null;
 }
 
+export interface AgencySummary {
+  code: string;
+  short_name: string;
+  name: string;
+  homepage_url: string;
+  crawl_target_count: number;
+  legal_basis_count: number;
+  guideline_count: number;
+  last_crawl_at: string | null;
+  last_crawl_status: string | null;
+  last_crawl_items: number | null;
+}
+
+export interface RecentLegalBasis {
+  id: number;
+  title: string;
+  basis_type: string;
+  agency_name: string;
+  promulgation_date: string | null;
+  created_at: string | null;
+}
+
+export interface DashboardSummary {
+  agency_count: number;
+  legal_basis_count: number;
+  guideline_count: number;
+  gap_missing: number;
+  gap_outdated: number;
+  gosi_count: number;
+  hunryeong_count: number;
+  yegyu_count: number;
+  agencies: AgencySummary[];
+  recent_legal_bases: RecentLegalBasis[];
+}
+
 // ── Fetch helper ────────────────────────────────────────
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
@@ -98,6 +133,10 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 // ── API functions ───────────────────────────────────────
+
+export async function fetchDashboardSummary(): Promise<DashboardSummary> {
+  return apiFetch<DashboardSummary>("/dashboard/summary");
+}
 
 export async function fetchAgencies(): Promise<Agency[]> {
   return apiFetch<Agency[]>("/agencies");
