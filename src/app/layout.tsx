@@ -20,10 +20,9 @@ export const metadata: Metadata = {
 
 const NAV_ITEMS = [
   { href: "/", label: "대시보드" },
-  { href: "/agencies", label: "추적 기관" },
   { href: "/guidelines", label: "가이드라인" },
-  { href: "/legal-bases", label: "법적 근거" },
-  { href: "/gaps", label: "갭 분석" },
+  { href: "/versions", label: "변경 이력" },
+  { href: "/agencies", label: "추적 기관" },
 ];
 
 export default function RootLayout({

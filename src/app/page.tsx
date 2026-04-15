@@ -152,27 +152,15 @@ export default function DashboardPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>갭 분석</CardDescription>
-            <CardTitle className="text-3xl">
-              {data.gap_missing + data.gap_outdated || "-"}
+            <CardDescription>최근 30일 변경</CardDescription>
+            <CardTitle className="text-3xl text-blue-600">
+              {data.recently_updated_count || "-"}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-2 text-xs">
-              {data.gap_missing > 0 && (
-                <span className="text-red-600">
-                  미발행 {data.gap_missing}
-                </span>
-              )}
-              {data.gap_outdated > 0 && (
-                <span className="text-amber-600">
-                  미갱신 {data.gap_outdated}
-                </span>
-              )}
-              {data.gap_missing === 0 && data.gap_outdated === 0 && (
-                <span className="text-muted-foreground">데이터 수집 중</span>
-              )}
-            </div>
+            <p className="text-xs text-muted-foreground">
+              신규 등록 + 버전 갱신
+            </p>
           </CardContent>
         </Card>
       </div>

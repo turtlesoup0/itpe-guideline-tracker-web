@@ -103,10 +103,24 @@ export interface RecentLegalBasis {
   created_at: string | null;
 }
 
+export interface RecentChange {
+  guideline_id: number;
+  title: string;
+  agency_code: string;
+  agency_name: string;
+  category: string;
+  change_type: "new" | "updated";
+  version_label: string | null;
+  published_date: string | null;
+  detected_at: string;
+  version_count: number;
+}
+
 export interface DashboardSummary {
   agency_count: number;
   legal_basis_count: number;
   guideline_count: number;
+  recently_updated_count: number;
   gap_missing: number;
   gap_outdated: number;
   gosi_count: number;
@@ -182,4 +196,33 @@ export async function fetchCrawlStatus(): Promise<CrawlStatus[]> {
 
 export async function triggerCrawl(agencyCode: string): Promise<unknown> {
   return apiFetch(`/crawl/${agencyCode}`, { method: "POST" });
+}
+
+export async function fetchRecentChanges(params?: {
+  days?: number;
+  agency_code?: string;
+  limit?: number;
+}): Promise<RecentChange[]> {
+  const search = new URLSearchParams();
+  if (params?.days) search.set("days", String(params.days));
+  if (params?.agency_code) search.set("agency_code", params.agency_code);
+  if (params?.limit) search.set("limit", String(params.limit));
+  const qs = search.toString();
+  return apiFetch<RecentChange[]>(`/guidelines/recent-changes${qs ? `?${qs}` : ""}`);
+}
+
+export interface GuidelineDetail extends Guideline {
+  versions: {
+    id: number;
+    version_label: string | null;
+    published_date: string;
+    pdf_url: string | null;
+    page_count: number | null;
+    change_summary: string | null;
+    significance: string | null;
+  }[];
+}
+
+export async function fetchGuidelineDetail(id: number): Promise<GuidelineDetail> {
+  return apiFetch<GuidelineDetail>(`/guidelines/${id}`);
 }
