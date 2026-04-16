@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
+import { MobileNav } from "./mobile-nav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,25 +40,32 @@ export default function RootLayout({
         {/* Header */}
         <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="mx-auto flex h-14 max-w-7xl items-center px-4">
-            <Link href="/" className="mr-8 font-bold text-lg">
+            <Link href="/" className="mr-4 sm:mr-8 font-bold text-base sm:text-lg truncate">
               IT 가이드라인 트래커
             </Link>
-            <nav className="flex items-center gap-6 text-sm">
+
+            {/* Desktop nav */}
+            <nav className="hidden sm:flex items-center gap-6 text-sm">
               {NAV_ITEMS.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="text-muted-foreground transition-colors hover:text-foreground"
+                  className="text-muted-foreground transition-colors hover:text-foreground whitespace-nowrap"
                 >
                   {item.label}
                 </Link>
               ))}
             </nav>
+
+            {/* Mobile hamburger */}
+            <div className="sm:hidden ml-auto">
+              <MobileNav items={NAV_ITEMS} />
+            </div>
           </div>
         </header>
 
         {/* Main */}
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-8">
           {children}
         </main>
 

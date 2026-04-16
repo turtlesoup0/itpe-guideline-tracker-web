@@ -25,6 +25,18 @@ const CATEGORY_LABEL: Record<string, string> = {
   other: "기타",
 };
 
+const CATEGORY_BADGE_COLOR: Record<string, string> = {
+  info_security: "bg-blue-100 text-blue-800 border-blue-200",
+  privacy: "bg-rose-100 text-rose-800 border-rose-200",
+  software: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  data: "bg-cyan-100 text-cyan-800 border-cyan-200",
+  cloud: "bg-sky-100 text-sky-800 border-sky-200",
+  ai: "bg-violet-100 text-violet-800 border-violet-200",
+  e_gov: "bg-amber-100 text-amber-800 border-amber-200",
+  finance: "bg-orange-100 text-orange-800 border-orange-200",
+  other: "bg-gray-100 text-gray-600 border-gray-200",
+};
+
 const PERIOD_OPTIONS = [
   { value: 7, label: "최근 7일" },
   { value: 30, label: "최근 30일" },
@@ -196,7 +208,7 @@ export default function VersionsPage() {
                   </TableCell>
                   <TableCell className="text-sm">{item.agency_name}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className={`text-xs ${CATEGORY_BADGE_COLOR[item.category] || ""}`}>
                       {CATEGORY_LABEL[item.category] || item.category}
                     </Badge>
                   </TableCell>
