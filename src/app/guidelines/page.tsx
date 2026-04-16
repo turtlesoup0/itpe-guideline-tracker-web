@@ -51,9 +51,6 @@ const CATEGORY_DOT_COLOR: Record<string, string> = {
   other: "bg-gray-400",
 };
 
-type SortKey = "title" | "agency" | "date" | "category";
-type SortDir = "asc" | "desc";
-
 function formatYearMonth(dateStr: string | null): string {
   if (!dateStr) return "-";
   const d = new Date(dateStr);
@@ -67,8 +64,8 @@ export default function GuidelinesPage() {
   const [agencies, setAgencies] = useState<Agency[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("date");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [groupByCategory, setGroupByCategory] = useState(false);
+  const [groupByAgency, setGroupByAgency] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [agencyFilter, setAgencyFilter] = useState<string>("");
 
@@ -110,20 +107,6 @@ export default function GuidelinesPage() {
     return Array.from(map.values()).sort((a, b) => b.count - a.count);
   }, [guidelines, agencyMap]);
 
-  const handleSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortKey(key);
-      setSortDir(key === "date" ? "desc" : "asc");
-    }
-  };
-
-  const sortIndicator = (key: SortKey) => {
-    if (sortKey !== key) return " ↕";
-    return sortDir === "asc" ? " ↑" : " ↓";
-  };
-
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let list = guidelines;
@@ -147,36 +130,33 @@ export default function GuidelinesPage() {
       });
     }
 
+    // 정렬: 게시일 내림차순 고정 + 분야/기관 그룹핑 (AND 조건)
     const sorted = [...list].sort((a, b) => {
-      let cmp = 0;
-      switch (sortKey) {
-        case "title":
-          cmp = a.title.localeCompare(b.title, "ko");
-          break;
-        case "agency": {
-          const aName = agencyMap[a.agency_id]?.short_name || "";
-          const bName = agencyMap[b.agency_id]?.short_name || "";
-          cmp = aName.localeCompare(bName, "ko");
-          break;
-        }
-        case "date": {
-          const aDate = a.latest_published_date || "";
-          const bDate = b.latest_published_date || "";
-          cmp = aDate.localeCompare(bDate);
-          break;
-        }
-        case "category":
-          cmp = (CATEGORY_LABEL[a.category] || a.category).localeCompare(
-            CATEGORY_LABEL[b.category] || b.category,
-            "ko",
-          );
-          break;
+      // 1차: 분야 그룹핑 (켜져 있을 때)
+      if (groupByCategory) {
+        const catCmp = (CATEGORY_LABEL[a.category] || a.category).localeCompare(
+          CATEGORY_LABEL[b.category] || b.category,
+          "ko",
+        );
+        if (catCmp !== 0) return catCmp;
       }
-      return sortDir === "asc" ? cmp : -cmp;
+
+      // 2차: 기관 그룹핑 (켜져 있을 때)
+      if (groupByAgency) {
+        const aName = agencyMap[a.agency_id]?.short_name || "";
+        const bName = agencyMap[b.agency_id]?.short_name || "";
+        const agCmp = aName.localeCompare(bName, "ko");
+        if (agCmp !== 0) return agCmp;
+      }
+
+      // 최종: 게시일 내림차순 (항상)
+      const aDate = a.latest_published_date || "";
+      const bDate = b.latest_published_date || "";
+      return bDate.localeCompare(aDate);
     });
 
     return sorted;
-  }, [guidelines, agencies, agencyMap, search, sortKey, sortDir, categoryFilter, agencyFilter]);
+  }, [guidelines, agencies, agencyMap, search, groupByCategory, groupByAgency, categoryFilter, agencyFilter]);
 
   return (
     <div className="space-y-5">
@@ -234,9 +214,35 @@ export default function GuidelinesPage() {
             </span>
           </div>
 
+          {/* 정렬 토글 */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">정렬</span>
+            <span className="text-xs text-muted-foreground opacity-50">게시일↓ 고정</span>
+            <button
+              onClick={() => setGroupByCategory((v) => !v)}
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium border transition-all ${
+                groupByCategory
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-muted text-muted-foreground border-transparent hover:bg-muted/80"
+              }`}
+            >
+              + 분야별
+            </button>
+            <button
+              onClick={() => setGroupByAgency((v) => !v)}
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium border transition-all ${
+                groupByAgency
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-muted text-muted-foreground border-transparent hover:bg-muted/80"
+              }`}
+            >
+              + 기관별
+            </button>
+          </div>
+
           {/* 분야 필터 토글 */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-muted-foreground mr-1">분야</span>
+            <span className="text-xs text-muted-foreground mr-1">필터</span>
             {Object.entries(CATEGORY_LABEL)
               .filter(([key]) => categoryCounts[key])
               .sort(([, a], [, b]) => a.localeCompare(b, "ko"))
@@ -259,7 +265,7 @@ export default function GuidelinesPage() {
 
           {/* 기관 필터 */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-muted-foreground mr-1">기관</span>
+            <span className="text-xs text-muted-foreground mr-1 invisible sm:visible w-0 sm:w-auto">기관</span>
             {agencyOptions.map((opt) => (
               <button
                 key={opt.code}
@@ -293,29 +299,13 @@ export default function GuidelinesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead
-                  className="cursor-pointer select-none hover:bg-muted/50"
-                  onClick={() => handleSort("title")}
-                >
-                  제목{sortIndicator("title")}
+                <TableHead>제목</TableHead>
+                <TableHead className="w-[90px]">게시일 ↓</TableHead>
+                <TableHead className="w-[90px]">
+                  기관{groupByAgency && <span className="text-xs ml-0.5 text-primary">▸</span>}
                 </TableHead>
-                <TableHead
-                  className="cursor-pointer select-none hover:bg-muted/50 w-[90px]"
-                  onClick={() => handleSort("date")}
-                >
-                  게시일{sortIndicator("date")}
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer select-none hover:bg-muted/50 w-[90px]"
-                  onClick={() => handleSort("agency")}
-                >
-                  기관{sortIndicator("agency")}
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer select-none hover:bg-muted/50 w-[90px]"
-                  onClick={() => handleSort("category")}
-                >
-                  분야{sortIndicator("category")}
+                <TableHead className="w-[90px]">
+                  분야{groupByCategory && <span className="text-xs ml-0.5 text-primary">▸</span>}
                 </TableHead>
                 <TableHead className="w-[60px]">링크</TableHead>
               </TableRow>
@@ -371,19 +361,19 @@ export default function GuidelinesPage() {
         <div className="md:hidden space-y-2">
           {/* 모바일 정렬 컨트롤 */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>정렬:</span>
-            {(["date", "title", "agency", "category"] as SortKey[]).map((key) => (
-              <button
-                key={key}
-                onClick={() => handleSort(key)}
-                className={`px-2 py-1 rounded ${
-                  sortKey === key ? "bg-primary text-primary-foreground" : "bg-muted"
-                }`}
-              >
-                {{ date: "날짜", title: "제목", agency: "기관", category: "분야" }[key]}
-                {sortKey === key && (sortDir === "asc" ? "↑" : "↓")}
-              </button>
-            ))}
+            <span>게시일↓</span>
+            <button
+              onClick={() => setGroupByCategory((v) => !v)}
+              className={`px-2 py-1 rounded ${groupByCategory ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+            >
+              +분야
+            </button>
+            <button
+              onClick={() => setGroupByAgency((v) => !v)}
+              className={`px-2 py-1 rounded ${groupByAgency ? "bg-primary text-primary-foreground" : "bg-muted"}`}
+            >
+              +기관
+            </button>
           </div>
 
           {filtered.map((gl) => (
