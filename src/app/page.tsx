@@ -23,7 +23,39 @@ import {
   type DashboardSummary,
   type AgencySummary,
   type RecentLegalBasis,
+  type CrawlHealthItem,
 } from "@/lib/api";
+
+const CATEGORY_LABEL: Record<string, string> = {
+  privacy: "개인정보",
+  info_security: "정보보안",
+  e_gov: "전자정부",
+  ai: "AI",
+  software: "SW",
+  data: "데이터",
+  cloud: "클라우드",
+  finance: "금융",
+  other: "기타",
+};
+
+const CATEGORY_COLOR: Record<string, string> = {
+  privacy: "bg-rose-500",
+  info_security: "bg-blue-500",
+  e_gov: "bg-emerald-500",
+  ai: "bg-violet-500",
+  software: "bg-amber-500",
+  data: "bg-cyan-500",
+  cloud: "bg-sky-500",
+  finance: "bg-orange-500",
+  other: "bg-gray-400",
+};
+
+const HEALTH_LABEL: Record<string, string> = {
+  never_crawled: "미실행",
+  last_failed: "실패",
+  zero_items: "0건 수집",
+  stale: "2주 이상 미갱신",
+};
 
 const TYPE_LABEL: Record<string, string> = {
   gosi: "고시",
@@ -161,6 +193,76 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground">
               신규 등록 + 버전 갱신
             </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Crawl Info + Category Distribution */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* 최종 갱신일 + 건전성 */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">크롤링 현황</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">최종 갱신일</span>
+              <span className="text-sm font-medium">
+                {data.last_global_crawl_at
+                  ? `${new Date(data.last_global_crawl_at).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })} (${timeAgo(data.last_global_crawl_at)})`
+                  : "-"}
+              </span>
+            </div>
+            {data.crawl_health.length > 0 && (
+              <div className="space-y-1.5">
+                <span className="text-sm text-muted-foreground">건전성 경고</span>
+                {data.crawl_health.map((h: CrawlHealthItem) => (
+                  <div key={h.agency_code} className="flex items-center gap-2 text-sm">
+                    <Badge variant="destructive" className="text-xs px-1.5 py-0">
+                      {h.agency_code}
+                    </Badge>
+                    <span className="text-amber-600">{HEALTH_LABEL[h.issue] || h.issue}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {data.crawl_health.length === 0 && (
+              <div className="flex items-center gap-2 text-sm text-emerald-600">
+                <span>&#10003;</span> 전 기관 크롤링 정상
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 카테고리 분포 */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">도메인 분포</CardTitle>
+            <CardDescription>카테고리별 수집 가이드라인</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {Object.entries(data.category_stats || {})
+                .sort(([, a], [, b]) => b - a)
+                .map(([cat, count]) => {
+                  const total = Object.values(data.category_stats || {}).reduce((s, v) => s + v, 0);
+                  const pct = total > 0 ? (count / total) * 100 : 0;
+                  return (
+                    <div key={cat} className="flex items-center gap-3">
+                      <span className="text-xs w-16 text-right text-muted-foreground">
+                        {CATEGORY_LABEL[cat] || cat}
+                      </span>
+                      <div className="flex-1 h-5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${CATEGORY_COLOR[cat] || "bg-gray-400"}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-medium w-8">{count}</span>
+                    </div>
+                  );
+                })}
+            </div>
           </CardContent>
         </Card>
       </div>

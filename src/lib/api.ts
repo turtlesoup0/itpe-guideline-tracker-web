@@ -116,6 +116,12 @@ export interface RecentChange {
   version_count: number;
 }
 
+export interface CrawlHealthItem {
+  agency_code: string;
+  agency_name: string;
+  issue: "never_crawled" | "last_failed" | "zero_items" | "stale";
+}
+
 export interface DashboardSummary {
   agency_count: number;
   legal_basis_count: number;
@@ -123,6 +129,9 @@ export interface DashboardSummary {
   recently_updated_count: number;
   gap_missing: number;
   gap_outdated: number;
+  last_global_crawl_at: string | null;
+  crawl_health: CrawlHealthItem[];
+  category_stats: Record<string, number>;
   gosi_count: number;
   hunryeong_count: number;
   yegyu_count: number;
