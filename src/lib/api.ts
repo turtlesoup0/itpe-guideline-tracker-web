@@ -35,12 +35,15 @@ export interface CrawlStatus {
   last_items_new: number | null;
 }
 
+export type ItemType = "guideline" | "announcement";
+
 export interface Guideline {
   id: number;
   agency_id: number;
   mandate_id: number | null;
   title: string;
   category: string;
+  item_type: ItemType;
   description: string | null;
   source_url: string | null;
   pdf_url: string | null;
@@ -126,6 +129,7 @@ export interface DashboardSummary {
   agency_count: number;
   legal_basis_count: number;
   guideline_count: number;
+  announcement_count: number;
   recently_updated_count: number;
   gap_missing: number;
   gap_outdated: number;
@@ -178,10 +182,12 @@ export async function seedAgencies(): Promise<{ created: number; skipped: number
 export async function fetchGuidelines(params?: {
   agency_code?: string;
   category?: string;
+  item_type?: ItemType;
 }): Promise<Guideline[]> {
   const search = new URLSearchParams();
   if (params?.agency_code) search.set("agency_code", params.agency_code);
   if (params?.category) search.set("category", params.category);
+  if (params?.item_type) search.set("item_type", params.item_type);
   const qs = search.toString();
   return apiFetch<Guideline[]>(`/guidelines${qs ? `?${qs}` : ""}`);
 }
