@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { fetchGuidelines, fetchAgencies, type Guideline, type Agency, type ItemType } from "@/lib/api";
+import { fetchGuidelines, fetchAgencies, type Guideline, type Agency } from "@/lib/api";
 
 // ── 분야 라벨 + 색상 (법령 트래커 기준) ──
 
@@ -68,16 +68,14 @@ export default function GuidelinesPage() {
   const [groupByAgency, setGroupByAgency] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [agencyFilter, setAgencyFilter] = useState<string>("");
-  const [itemType, setItemType] = useState<ItemType>("guideline");
-
   useEffect(() => {
-    Promise.all([fetchGuidelines({ item_type: itemType }), fetchAgencies()])
+    Promise.all([fetchGuidelines({ item_type: "guideline" }), fetchAgencies()])
       .then(([gl, ag]) => {
         setGuidelines(gl);
         setAgencies(ag);
       })
       .catch((e) => setError(e.message));
-  }, [itemType]);
+  }, []);
 
   const agencyMap = useMemo(
     () => Object.fromEntries(agencies.map((a) => [a.id, a])),
@@ -162,38 +160,10 @@ export default function GuidelinesPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          {itemType === "guideline" ? "가이드라인" : "보도·발표"}
-        </h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">가이드라인</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {itemType === "guideline"
-            ? `수집된 가이드라인 ${guidelines.length}건`
-            : `수집된 보도·발표 ${guidelines.length}건`}
+          수집된 가이드라인 {guidelines.length}건
         </p>
-      </div>
-
-      {/* 탭: 가이드라인 / 보도·발표 */}
-      <div className="flex gap-1 border-b">
-        <button
-          onClick={() => setItemType("guideline")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-            itemType === "guideline"
-              ? "border-primary text-foreground"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          📘 가이드라인
-        </button>
-        <button
-          onClick={() => setItemType("announcement")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-            itemType === "announcement"
-              ? "border-primary text-foreground"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          📢 보도·발표
-        </button>
       </div>
 
       {error && (

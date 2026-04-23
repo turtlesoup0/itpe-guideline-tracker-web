@@ -22,6 +22,7 @@ export const metadata: Metadata = {
 const NAV_ITEMS = [
   { href: "/", label: "대시보드" },
   { href: "/guidelines", label: "가이드라인" },
+  { href: "/announcements", label: "보도·발표" },
   { href: "/versions", label: "변경 이력" },
   { href: "/agencies", label: "추적 기관" },
 ];
