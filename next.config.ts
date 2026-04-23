@@ -21,8 +21,8 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
       "font-src 'self' fonts.gstatic.com data:",
       "img-src 'self' data: blob: https:",
-      // API 백엔드 + 법령 트래커 교차링크용
-      "connect-src 'self' https://itpe-law-tracker.vercel.app https://api.itpe-guideline-tracker.dev http://localhost:8000",
+      // API 백엔드 (Cloudflared Quick Tunnel은 매 재시작마다 URL이 바뀌므로 와일드카드)
+      "connect-src 'self' https://itpe-law-tracker.vercel.app https://*.trycloudflare.com http://localhost:8000",
       "frame-ancestors 'self'",
       "base-uri 'self'",
       "form-action 'self'",
