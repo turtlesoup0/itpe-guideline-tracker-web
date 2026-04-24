@@ -339,6 +339,33 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {/* 최근 수집/감지된 가이드라인 */}
+      {data.recent_guidelines && data.recent_guidelines.length > 0 && (
+        <div>
+          <h2 className="text-xl font-semibold mb-3">최근 수집된 항목</h2>
+          <Card>
+            <div className="divide-y">
+              {data.recent_guidelines.slice(0, 10).map((r) => (
+                <div key={r.id} className="px-4 py-2.5 flex items-start gap-3">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums mt-0.5">
+                    {r.published_date || "?"}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{r.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {r.agency_name}
+                      {r.version_label && ` · ${r.version_label}`}
+                    </p>
+                  </div>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap mt-0.5">
+                    {r.detected_at ? timeAgo(r.detected_at) : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

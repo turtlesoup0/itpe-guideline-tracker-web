@@ -146,6 +146,18 @@ export interface DashboardSummary {
   yegyu_count: number;
   agencies: AgencySummary[];
   recent_legal_bases: RecentLegalBasis[];
+  recent_guidelines: RecentGuideline[];
+}
+
+export interface RecentGuideline {
+  id: number;
+  guideline_id: number;
+  title: string;
+  agency_name: string;
+  version_label: string | null;
+  published_date: string | null;
+  pdf_url: string | null;
+  detected_at: string | null;
 }
 
 // ── Fetch helper ────────────────────────────────────────
