@@ -68,8 +68,6 @@ export function KeywordInfo({ itemType }: { itemType: "guideline" | "announcemen
           </div>
           <p className="text-[11px] text-muted-foreground mt-2 pt-2 border-t">
             제목에 이 키워드 중 하나라도 포함되면 수집 대상.
-            <br />
-            기준 변경은 백엔드 <code className="text-[10px]">registry.py</code>에서 관리.
           </p>
         </div>
       )}
