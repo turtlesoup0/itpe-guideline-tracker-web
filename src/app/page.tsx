@@ -141,7 +141,7 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">대시보드</h1>
         <p className="mt-2 text-muted-foreground">
-          {data.agency_count}개 기관의 IT 가이드라인 발행 현황과 법적 근거를
+          {data.agency_count}개 기관의 IT 가이드라인·보도자료 발행 현황을
           추적합니다.
         </p>
       </div>
@@ -159,33 +159,25 @@ export default function DashboardPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>법적 근거</CardDescription>
-            <CardTitle className="text-3xl">{data.legal_basis_count}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2 text-xs">
-              <span className="text-blue-600">
-                고시 {data.gosi_count}
-              </span>
-              <span className="text-purple-600">
-                훈령 {data.hunryeong_count}
-              </span>
-              <span className="text-amber-600">
-                예규 {data.yegyu_count}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>수집 가이드라인</CardDescription>
+            <CardDescription>가이드라인</CardDescription>
             <CardTitle className="text-3xl">
               {data.guideline_count || "-"}
             </CardTitle>
           </CardHeader>
           <CardContent>
+            <p className="text-xs text-muted-foreground">실제 문서</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>보도·발표</CardDescription>
+            <CardTitle className="text-3xl">
+              {data.announcement_count || "-"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <p className="text-xs text-muted-foreground">
-              크롤링으로 수집된 발행물
+              고시·법령 관련 발표성 게시물
             </p>
           </CardContent>
         </Card>
@@ -301,7 +293,6 @@ export default function DashboardPage() {
                 <TableHead className="w-[100px]">기관</TableHead>
                 <TableHead>기관명</TableHead>
                 <TableHead className="text-center">크롤링 타겟</TableHead>
-                <TableHead className="text-center">법적 근거</TableHead>
                 <TableHead className="text-center">가이드라인</TableHead>
                 <TableHead className="text-center">최근 크롤링</TableHead>
                 <TableHead className="text-center">상태</TableHead>
@@ -327,15 +318,6 @@ export default function DashboardPage() {
                     {agency.crawl_target_count}
                   </TableCell>
                   <TableCell className="text-center">
-                    {agency.legal_basis_count > 0 ? (
-                      <span className="font-medium text-blue-600">
-                        {agency.legal_basis_count}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
                     {agency.guideline_count > 0 ? (
                       <span className="font-medium text-emerald-600">
                         {agency.guideline_count}
@@ -357,45 +339,6 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Recent Legal Bases */}
-      {data.recent_legal_bases.length > 0 && (
-        <>
-          <Separator />
-          <div>
-            <h2 className="text-xl font-semibold mb-4">
-              최근 수집된 법적 근거
-            </h2>
-            <div className="grid gap-3">
-              {data.recent_legal_bases.map((lb: RecentLegalBasis) => (
-                <Card key={lb.id} className="hover:shadow-sm transition-shadow">
-                  <CardContent className="py-3 flex items-center gap-3">
-                    <Badge
-                      variant="outline"
-                      className={TYPE_COLOR[lb.basis_type] || ""}
-                    >
-                      {TYPE_LABEL[lb.basis_type] || lb.basis_type}
-                    </Badge>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {lb.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {lb.agency_name}
-                        {lb.promulgation_date && (
-                          <> &middot; 공포일 {lb.promulgation_date}</>
-                        )}
-                      </p>
-                    </div>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      {timeAgo(lb.created_at)}
-                    </span>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 }
