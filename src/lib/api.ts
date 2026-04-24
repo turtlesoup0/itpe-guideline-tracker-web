@@ -122,7 +122,10 @@ export interface RecentChange {
 export interface CrawlHealthItem {
   agency_code: string;
   agency_name: string;
-  issue: "never_crawled" | "last_failed" | "zero_items" | "stale";
+  issue: "never_crawled" | "all_failed" | "zero_keyword_match" | "stale";
+  detail: string | null;
+  latest_run_at: string | null;
+  items_collected: number;
 }
 
 export interface DashboardSummary {

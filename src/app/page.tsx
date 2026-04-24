@@ -51,10 +51,17 @@ const CATEGORY_COLOR: Record<string, string> = {
 };
 
 const HEALTH_LABEL: Record<string, string> = {
-  never_crawled: "미실행",
-  last_failed: "실패",
-  zero_items: "0건 수집",
-  stale: "2주 이상 미갱신",
+  never_crawled: "크롤 이력 없음",
+  all_failed: "크롤 실패",
+  zero_keyword_match: "키워드 매칭 없음",
+  stale: "2주+ 미실행",
+};
+
+const HEALTH_SEVERITY: Record<string, "warn" | "info"> = {
+  never_crawled: "warn",
+  all_failed: "warn",
+  zero_keyword_match: "info",   // 정상 상태일 수 있음 (키워드 불일치)
+  stale: "warn",
 };
 
 const TYPE_LABEL: Record<string, string> = {
@@ -216,14 +223,29 @@ export default function DashboardPage() {
             {data.crawl_health.length > 0 && (
               <div className="space-y-1.5">
                 <span className="text-sm text-muted-foreground">건전성 경고</span>
-                {data.crawl_health.map((h: CrawlHealthItem) => (
-                  <div key={h.agency_code} className="flex items-center gap-2 text-sm">
-                    <Badge variant="destructive" className="text-xs px-1.5 py-0">
-                      {h.agency_code}
-                    </Badge>
-                    <span className="text-amber-600">{HEALTH_LABEL[h.issue] || h.issue}</span>
-                  </div>
-                ))}
+                {data.crawl_health.map((h: CrawlHealthItem) => {
+                  const severity = HEALTH_SEVERITY[h.issue] || "warn";
+                  return (
+                    <div key={h.agency_code} className="flex items-start gap-2 text-sm">
+                      <Badge
+                        variant={severity === "warn" ? "destructive" : "secondary"}
+                        className="text-xs px-1.5 py-0 shrink-0"
+                      >
+                        {h.agency_code}
+                      </Badge>
+                      <div className="min-w-0 flex-1">
+                        <span className={severity === "warn" ? "text-amber-600" : "text-muted-foreground"}>
+                          {HEALTH_LABEL[h.issue] || h.issue}
+                        </span>
+                        {h.detail && (
+                          <span className="block text-xs text-muted-foreground mt-0.5">
+                            {h.detail}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
             {data.crawl_health.length === 0 && (
