@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { fetchGuidelines, fetchAgencies, type Guideline, type Agency } from "@/lib/api";
+import { KeywordInfo } from "@/components/keyword-info";
 
 // ── 분야 라벨 + 색상 (법령 트래커 기준) ──
 
@@ -102,7 +103,10 @@ export default function AnnouncementsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">보도·발표</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">보도·발표</h1>
+          <KeywordInfo itemType="announcement" />
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">
           각 기관의 보도자료·공지사항 게시판에서 수집된 {items.length}건
         </p>

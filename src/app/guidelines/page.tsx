@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { fetchGuidelines, fetchAgencies, type Guideline, type Agency } from "@/lib/api";
+import { KeywordInfo } from "@/components/keyword-info";
 
 // ── 분야 라벨 + 색상 (법령 트래커 기준) ──
 
@@ -160,7 +161,10 @@ export default function GuidelinesPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">가이드라인</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">가이드라인</h1>
+          <KeywordInfo itemType="guideline" />
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">
           수집된 가이드라인 {guidelines.length}건
         </p>
