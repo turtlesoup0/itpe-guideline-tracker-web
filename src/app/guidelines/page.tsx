@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -317,11 +318,19 @@ export default function GuidelinesPage() {
               {filtered.map((gl) => (
                 <TableRow key={gl.id}>
                   <TableCell className="font-medium max-w-[420px]">
-                    <div>{gl.title}</div>
+                    <Link
+                      href={`/guidelines/${gl.id}`}
+                      className="hover:text-blue-600 hover:underline"
+                    >
+                      {gl.title}
+                    </Link>
                     {gl.version_count > 1 && (
-                      <span className="text-xs text-muted-foreground">
-                        {gl.version_count}개 버전
-                      </span>
+                      <Link
+                        href={`/guidelines/${gl.id}`}
+                        className="ml-2 text-xs text-blue-600 hover:underline"
+                      >
+                        📚 {gl.version_count}개 버전
+                      </Link>
                     )}
                   </TableCell>
                   <TableCell className="text-sm tabular-nums whitespace-nowrap">
