@@ -115,6 +115,8 @@ export interface RecentChange {
   change_type: "new" | "updated";
   version_label: string | null;
   published_date: string | null;
+  previous_published_date: string | null;
+  previous_version_label: string | null;
   detected_at: string;
   version_count: number;
 }

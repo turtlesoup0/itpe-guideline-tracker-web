@@ -213,7 +213,21 @@ export default function VersionsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm tabular-nums">
-                    {formatDate(item.published_date)}
+                    {item.previous_published_date ? (
+                      <div className="flex flex-col leading-tight">
+                        <span className="text-xs text-muted-foreground line-through">
+                          {formatDate(item.previous_published_date)}
+                          {item.previous_version_label && (
+                            <span className="ml-1 italic">({item.previous_version_label})</span>
+                          )}
+                        </span>
+                        <span className="text-emerald-700 font-medium">
+                          → {formatDate(item.published_date)}
+                        </span>
+                      </div>
+                    ) : (
+                      formatDate(item.published_date)
+                    )}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {timeAgo(item.detected_at)}
