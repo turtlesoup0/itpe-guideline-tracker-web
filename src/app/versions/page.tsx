@@ -66,6 +66,7 @@ export default function VersionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [days, setDays] = useState(90);
   const [agencyFilter, setAgencyFilter] = useState<string>("");
+  const [typeFilter, setTypeFilter] = useState<"" | "new" | "updated">("");
 
   useEffect(() => {
     fetchRecentChanges({ days, limit: 200 })
@@ -82,9 +83,11 @@ export default function VersionsPage() {
   }, [changes]);
 
   const filtered = useMemo(() => {
-    if (!agencyFilter) return changes;
-    return changes.filter((c) => c.agency_code === agencyFilter);
-  }, [changes, agencyFilter]);
+    let list = changes;
+    if (agencyFilter) list = list.filter((c) => c.agency_code === agencyFilter);
+    if (typeFilter) list = list.filter((c) => c.change_type === typeFilter);
+    return list;
+  }, [changes, agencyFilter, typeFilter]);
 
   const stats = useMemo(() => {
     const newCount = filtered.filter((c) => c.change_type === "new").length;
@@ -146,6 +149,26 @@ export default function VersionsPage() {
               }`}
             >
               {opt.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">유형:</span>
+          {[
+            { v: "", l: "전체" },
+            { v: "new", l: "신규" },
+            { v: "updated", l: "갱신" },
+          ].map((opt) => (
+            <button
+              key={opt.v}
+              onClick={() => setTypeFilter(opt.v as "" | "new" | "updated")}
+              className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
+                typeFilter === opt.v
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+            >
+              {opt.l}
             </button>
           ))}
         </div>
