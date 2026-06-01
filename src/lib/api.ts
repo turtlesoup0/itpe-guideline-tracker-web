@@ -47,6 +47,7 @@ export interface Guideline {
   description: string | null;
   source_url: string | null;
   pdf_url: string | null;
+  duplicate_of_id: number | null;
   latest_published_date: string | null;
   version_count: number;
 }

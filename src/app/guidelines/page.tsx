@@ -332,6 +332,15 @@ export default function GuidelinesPage() {
                         📚 {gl.version_count}개 버전
                       </Link>
                     )}
+                    {gl.duplicate_of_id && (
+                      <Link
+                        href={`/guidelines/${gl.duplicate_of_id}`}
+                        title="다른 기관에서 동일 PDF가 이미 수집됨"
+                        className="ml-2 inline-flex items-center text-xs text-amber-600 hover:underline"
+                      >
+                        🔁 중복 콘텐츠
+                      </Link>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm tabular-nums whitespace-nowrap">
                     {formatYearMonth(gl.latest_published_date)}
