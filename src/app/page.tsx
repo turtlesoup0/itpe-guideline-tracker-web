@@ -1,54 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Card } from "@/components/ui/card";
+import { CategoryDot } from "@/components/category-dot";
+import { CodeChip, StatusDot } from "@/components/ui/tag";
+import { CATEGORY_ORDER, categoryLabel, categoryDotClass } from "@/lib/categories";
 import {
   fetchDashboardSummary,
   type DashboardSummary,
   type AgencySummary,
-  type RecentLegalBasis,
   type CrawlHealthItem,
 } from "@/lib/api";
-
-const CATEGORY_LABEL: Record<string, string> = {
-  privacy: "개인정보",
-  info_security: "정보보안",
-  e_gov: "전자정부",
-  ai: "AI",
-  software: "SW",
-  data: "데이터",
-  cloud: "클라우드",
-  finance: "금융",
-  other: "기타",
-};
-
-const CATEGORY_COLOR: Record<string, string> = {
-  privacy: "bg-rose-500",
-  info_security: "bg-blue-500",
-  e_gov: "bg-emerald-500",
-  ai: "bg-violet-500",
-  software: "bg-amber-500",
-  data: "bg-cyan-500",
-  cloud: "bg-sky-500",
-  finance: "bg-orange-500",
-  other: "bg-gray-400",
-};
 
 const HEALTH_LABEL: Record<string, string> = {
   never_crawled: "크롤 이력 없음",
@@ -57,31 +19,19 @@ const HEALTH_LABEL: Record<string, string> = {
   stale: "2주+ 미실행",
 };
 
-const HEALTH_SEVERITY: Record<string, "warn" | "info"> = {
+// zero_keyword_match 는 정상 상태일 수 있음 (수집원에 해당 키워드가 없을 뿐)
+const HEALTH_TONE: Record<string, "warn" | "idle"> = {
   never_crawled: "warn",
   all_failed: "warn",
-  zero_keyword_match: "info",   // 정상 상태일 수 있음 (키워드 불일치)
+  zero_keyword_match: "idle",
   stale: "warn",
 };
 
-const TYPE_LABEL: Record<string, string> = {
-  gosi: "고시",
-  hunryeong: "훈령",
-  yegyu: "예규",
-};
-
-const TYPE_COLOR: Record<string, string> = {
-  gosi: "bg-blue-100 text-blue-800",
-  hunryeong: "bg-purple-100 text-purple-800",
-  yegyu: "bg-amber-100 text-amber-800",
-};
-
-function statusBadge(status: string | null) {
-  if (!status) return <Badge variant="outline">미실행</Badge>;
-  if (status === "success")
-    return <Badge className="bg-emerald-500 text-white">성공</Badge>;
-  if (status === "failed") return <Badge variant="destructive">실패</Badge>;
-  return <Badge variant="secondary">{status}</Badge>;
+function crawlStatus(status: string | null) {
+  if (!status) return <StatusDot tone="idle">미실행</StatusDot>;
+  if (status === "success") return <StatusDot tone="ok">성공</StatusDot>;
+  if (status === "failed") return <StatusDot tone="danger">실패</StatusDot>;
+  return <StatusDot tone="warn">{status}</StatusDot>;
 }
 
 function timeAgo(isoStr: string | null): string {
@@ -96,6 +46,48 @@ function timeAgo(isoStr: string | null): string {
   return `${days}일 전`;
 }
 
+function formatDateTime(isoStr: string): string {
+  const d = new Date(isoStr);
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${String(
+    d.getHours(),
+  ).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+function PageHeading({ children }: { children?: React.ReactNode }) {
+  return (
+    <div>
+      <h1 className="text-[23px] font-semibold tracking-tight">대시보드</h1>
+      {children}
+    </div>
+  );
+}
+
+function Tile({
+  label,
+  value,
+  hint,
+  accent,
+}: {
+  label: string;
+  value: number | string;
+  hint: string;
+  accent?: boolean;
+}) {
+  return (
+    <Card className="flex flex-col gap-1.5 px-4 py-3.5">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <span
+        className={`text-[30px] leading-none font-semibold tracking-tighter tabular-nums ${
+          accent ? "text-primary" : ""
+        }`}
+      >
+        {value}
+      </span>
+      <span className="text-[11.5px] text-faint">{hint}</span>
+    </Card>
+  );
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -108,17 +100,14 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">대시보드</h1>
-          <p className="mt-2 text-muted-foreground">
+      <div className="space-y-5">
+        <PageHeading>
+          <p className="mt-1.5 text-sm text-muted-foreground">
             IT 가이드라인 추적 현황을 한눈에 확인합니다.
           </p>
-        </div>
-        <Card>
-          <CardContent className="pt-6 text-amber-600">
-            백엔드 연결 실패: {error}
-          </CardContent>
+        </PageHeading>
+        <Card className="gap-0 px-4 py-5 text-sm text-warning">
+          백엔드 연결 실패: {error}
         </Card>
       </div>
     );
@@ -126,245 +115,259 @@ export default function DashboardPage() {
 
   if (!data) {
     return (
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">대시보드</h1>
-          <p className="mt-2 text-muted-foreground">로딩 중...</p>
-        </div>
+      <div className="space-y-5">
+        <PageHeading>
+          <p className="mt-1.5 text-sm text-muted-foreground">불러오는 중…</p>
+        </PageHeading>
       </div>
     );
   }
 
+  const crawlTargets = data.agencies.reduce((s, a) => s + a.crawl_target_count, 0);
+  const categoryTotal = Object.values(data.category_stats || {}).reduce(
+    (s, v) => s + v,
+    0,
+  );
+  const categories = CATEGORY_ORDER.filter((key) => data.category_stats?.[key]).sort(
+    (a, b) => (data.category_stats[b] ?? 0) - (data.category_stats[a] ?? 0),
+  );
+  const unknownCategories = Object.keys(data.category_stats || {}).filter(
+    (key) => !CATEGORY_ORDER.includes(key as never),
+  );
+  const shownCategories = [...categories, ...unknownCategories];
+
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">대시보드</h1>
-        <p className="mt-2 text-muted-foreground">
-          {data.agency_count}개 기관의 IT 가이드라인·보도자료 발행 현황을
-          추적합니다.
+    <div className="space-y-5">
+      <PageHeading>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          {data.agency_count}개 기관의 가이드라인·보도자료 발행 현황을 추적합니다.
         </p>
+      </PageHeading>
+
+      {/* 지표 */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Tile
+          label="추적 기관"
+          value={data.agency_count}
+          hint={`크롤 타겟 ${crawlTargets}개`}
+        />
+        <Tile
+          label="가이드라인"
+          value={data.guideline_count || "-"}
+          hint="수집 문서 기준"
+        />
+        <Tile
+          label="보도·발표"
+          value={data.announcement_count || "-"}
+          hint="고시·법령 관련 발표"
+        />
+        <Tile
+          label="최근 30일 변경"
+          value={data.recently_updated_count || "-"}
+          hint="신규 등록 + 버전 갱신"
+          accent
+        />
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>추적 기관</CardDescription>
-            <CardTitle className="text-3xl">{data.agency_count}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">정부/공공기관</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>가이드라인</CardDescription>
-            <CardTitle className="text-3xl">
-              {data.guideline_count || "-"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">실제 문서</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>보도·발표</CardDescription>
-            <CardTitle className="text-3xl">
-              {data.announcement_count || "-"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              고시·법령 관련 발표성 게시물
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>최근 30일 변경</CardDescription>
-            <CardTitle className="text-3xl text-blue-600">
-              {data.recently_updated_count || "-"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              신규 등록 + 버전 갱신
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* 크롤링 현황 + 도메인 분포 */}
+      <div className="grid items-start gap-4 lg:grid-cols-[404px_minmax(0,1fr)]">
+        <Card className="gap-0 overflow-hidden">
+          <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
+            <span className="text-[13px] font-semibold">크롤링 현황</span>
+            {data.crawl_health.length === 0 ? (
+              <StatusDot tone="ok">전 기관 정상</StatusDot>
+            ) : (
+              <StatusDot tone="warn">경고 {data.crawl_health.length}건</StatusDot>
+            )}
+          </div>
 
-      {/* Crawl Info + Category Distribution */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* 최종 갱신일 + 건전성 */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">크롤링 현황</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">최종 갱신일</span>
-              <span className="text-sm font-medium">
-                {data.last_global_crawl_at
-                  ? `${new Date(data.last_global_crawl_at).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })} (${timeAgo(data.last_global_crawl_at)})`
-                  : "-"}
+          <dl className="grid grid-cols-[76px_minmax(0,1fr)] gap-x-3.5 gap-y-2.5 px-4 py-3.5 text-[13px]">
+            <dt className="text-xs text-faint">최종 갱신</dt>
+            <dd className="m-0">
+              {data.last_global_crawl_at ? (
+                <>
+                  {formatDateTime(data.last_global_crawl_at)}
+                  <span className="text-faint">
+                    {" "}
+                    · {timeAgo(data.last_global_crawl_at)}
+                  </span>
+                </>
+              ) : (
+                "-"
+              )}
+            </dd>
+
+            <dt className="text-xs text-faint">크롤 타겟</dt>
+            <dd className="m-0">
+              {crawlTargets}개
+              <span className="text-faint">
+                {" "}
+                · 기관 평균 {(crawlTargets / (data.agency_count || 1)).toFixed(1)}개
               </span>
-            </div>
-            {data.crawl_health.length > 0 && (
-              <div className="space-y-1.5">
-                <span className="text-sm text-muted-foreground">건전성 경고</span>
-                {data.crawl_health.map((h: CrawlHealthItem) => {
-                  const severity = HEALTH_SEVERITY[h.issue] || "warn";
-                  return (
-                    <div key={h.agency_code} className="flex items-start gap-2 text-sm">
-                      <Badge
-                        variant={severity === "warn" ? "destructive" : "secondary"}
-                        className="text-xs px-1.5 py-0 shrink-0"
-                      >
-                        {h.agency_code}
-                      </Badge>
-                      <div className="min-w-0 flex-1">
-                        <span className={severity === "warn" ? "text-amber-600" : "text-muted-foreground"}>
-                          {HEALTH_LABEL[h.issue] || h.issue}
-                        </span>
-                        {h.detail && (
-                          <span className="block text-xs text-muted-foreground mt-0.5">
-                            {h.detail}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            {data.crawl_health.length === 0 && (
-              <div className="flex items-center gap-2 text-sm text-emerald-600">
-                <span>&#10003;</span> 전 기관 크롤링 정상
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </dd>
+          </dl>
 
-        {/* 카테고리 분포 */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">도메인 분포</CardTitle>
-            <CardDescription>카테고리별 수집 가이드라인</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {Object.entries(data.category_stats || {})
-                .sort(([, a], [, b]) => b - a)
-                .map(([cat, count]) => {
-                  const total = Object.values(data.category_stats || {}).reduce((s, v) => s + v, 0);
-                  const pct = total > 0 ? (count / total) * 100 : 0;
-                  return (
-                    <div key={cat} className="flex items-center gap-3">
-                      <span className="text-xs w-16 text-right text-muted-foreground">
-                        {CATEGORY_LABEL[cat] || cat}
+          {data.crawl_health.length > 0 && (
+            <div className="space-y-2 border-t px-4 py-3.5">
+              {data.crawl_health.map((h: CrawlHealthItem) => (
+                <div key={h.agency_code} className="flex items-start gap-2.5 text-[13px]">
+                  <CodeChip className="mt-px shrink-0">{h.agency_code}</CodeChip>
+                  <div className="min-w-0 flex-1">
+                    <StatusDot tone={HEALTH_TONE[h.issue] || "warn"}>
+                      {HEALTH_LABEL[h.issue] || h.issue}
+                    </StatusDot>
+                    {h.detail && (
+                      <span className="mt-0.5 block text-[11.5px] text-faint">
+                        {h.detail}
                       </span>
-                      <div className="flex-1 h-5 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${CATEGORY_COLOR[cat] || "bg-gray-400"}`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <span className="text-xs font-medium w-8">{count}</span>
-                    </div>
-                  );
-                })}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Separator />
-
-      {/* Agency Status Table */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">기관별 수집 현황</h2>
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[100px]">기관</TableHead>
-                <TableHead>기관명</TableHead>
-                <TableHead className="text-center">크롤링 타겟</TableHead>
-                <TableHead className="text-center">가이드라인</TableHead>
-                <TableHead className="text-center">최근 크롤링</TableHead>
-                <TableHead className="text-center">상태</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.agencies.map((agency: AgencySummary) => (
-                <TableRow key={agency.code}>
-                  <TableCell>
-                    <Badge variant="secondary" className="font-mono">
-                      {agency.code}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <span className="font-medium">{agency.short_name}</span>
-                      <span className="text-xs text-muted-foreground ml-2">
-                        {agency.name}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {agency.crawl_target_count}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {agency.guideline_count > 0 ? (
-                      <span className="font-medium text-emerald-600">
-                        {agency.guideline_count}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
                     )}
-                  </TableCell>
-                  <TableCell className="text-center text-sm text-muted-foreground">
-                    {timeAgo(agency.last_crawl_at)}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {statusBadge(agency.last_crawl_status)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
-      </div>
-
-      {/* 최근 수집/감지된 가이드라인 */}
-      {data.recent_guidelines && data.recent_guidelines.length > 0 && (
-        <div>
-          <h2 className="text-xl font-semibold mb-3">최근 수집된 항목</h2>
-          <Card>
-            <div className="divide-y">
-              {data.recent_guidelines.slice(0, 10).map((r) => (
-                <div key={r.id} className="px-4 py-2.5 flex items-start gap-3">
-                  <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums mt-0.5">
-                    {r.published_date || "?"}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{r.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {r.agency_name}
-                      {r.version_label && ` · ${r.version_label}`}
-                    </p>
                   </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap mt-0.5">
-                    {r.detected_at ? timeAgo(r.detected_at) : ""}
-                  </span>
                 </div>
               ))}
             </div>
+          )}
+        </Card>
+
+        <Card className="gap-0 overflow-hidden">
+          <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
+            <span className="text-[13px] font-semibold">도메인 분포</span>
+            <span className="text-[11.5px] text-faint">전체 {categoryTotal}건</span>
+          </div>
+
+          <div className="px-4 pt-3.5">
+            <div className="flex h-2.5 gap-0.5">
+              {shownCategories.map((key) => (
+                <span
+                  key={key}
+                  className={`block rounded-[2px] ${categoryDotClass(key)}`}
+                  style={{ flexGrow: data.category_stats[key] }}
+                  title={`${categoryLabel(key)} ${data.category_stats[key]}건`}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-x-5 gap-y-2 px-4 py-4 sm:grid-cols-2 lg:grid-cols-3">
+            {shownCategories.map((key) => {
+              const count = data.category_stats[key];
+              const pct = categoryTotal > 0 ? (count / categoryTotal) * 100 : 0;
+              return (
+                <div key={key} className="flex items-center gap-2 text-xs">
+                  <CategoryDot category={key} />
+                  <span className="text-muted-foreground">{categoryLabel(key)}</span>
+                  <span className="ml-auto font-medium tabular-nums">{count}</span>
+                  <span className="w-11 text-right text-[11.5px] text-faint tabular-nums">
+                    {pct.toFixed(1)}%
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
+
+      {/* 기관별 수집 현황 */}
+      <section>
+        <h2 className="mb-2 text-[13px] font-semibold text-muted-foreground">
+          기관별 수집 현황
+        </h2>
+        <Card className="gap-0 overflow-hidden">
+          <table className="w-full border-collapse text-[13px]">
+            <thead>
+              <tr className="text-[11.5px] font-medium text-faint">
+                <th className="w-[86px] border-b px-3.5 py-2.5 text-left font-medium">
+                  기관
+                </th>
+                <th className="border-b px-3.5 py-2.5 text-left font-medium">기관명</th>
+                <th className="w-[86px] border-b px-3.5 py-2.5 text-right font-medium">
+                  크롤 타겟
+                </th>
+                <th className="w-[86px] border-b px-3.5 py-2.5 text-right font-medium">
+                  수집 문서
+                </th>
+                <th className="w-[100px] border-b px-3.5 py-2.5 text-right font-medium">
+                  최근 크롤링
+                </th>
+                <th className="w-[96px] border-b px-3.5 py-2.5 text-left font-medium">
+                  상태
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...data.agencies]
+                .sort((a, b) => b.guideline_count - a.guideline_count)
+                .map((agency: AgencySummary) => (
+                  <tr
+                    key={agency.code}
+                    className="transition-colors last:[&>td]:border-b-0 hover:bg-muted"
+                  >
+                    <td className="border-b px-3.5 py-2">
+                      <CodeChip>{agency.code}</CodeChip>
+                    </td>
+                    <td className="border-b px-3.5 py-2">
+                      <span className="font-medium">{agency.short_name}</span>
+                      <span className="ml-2 text-xs text-faint">{agency.name}</span>
+                    </td>
+                    <td className="border-b px-3.5 py-2 text-right tabular-nums">
+                      {agency.crawl_target_count}
+                    </td>
+                    <td className="border-b px-3.5 py-2 text-right font-medium tabular-nums">
+                      {agency.guideline_count > 0 ? (
+                        agency.guideline_count
+                      ) : (
+                        <span className="font-normal text-faint">-</span>
+                      )}
+                    </td>
+                    <td className="border-b px-3.5 py-2 text-right text-xs text-muted-foreground tabular-nums">
+                      {timeAgo(agency.last_crawl_at)}
+                    </td>
+                    <td className="border-b px-3.5 py-2">
+                      {crawlStatus(agency.last_crawl_status)}
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </Card>
+      </section>
+
+      {/* 최근 수집된 항목 */}
+      {data.recent_guidelines && data.recent_guidelines.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-[13px] font-semibold text-muted-foreground">
+            최근 수집된 항목
+          </h2>
+          <Card className="gap-0 overflow-hidden">
+            <div className="flex items-center gap-3 border-b bg-muted px-4 py-2 text-[11.5px] text-faint">
+              <span className="w-[74px] shrink-0">게시일</span>
+              <span className="flex-1">제목</span>
+              <span className="w-[92px] shrink-0">기관</span>
+              <span className="w-[62px] shrink-0 text-right">감지</span>
+            </div>
+            {data.recent_guidelines.slice(0, 10).map((r) => (
+              <div
+                key={r.id}
+                className="flex items-center gap-3 border-b px-4 py-2 text-[13px] transition-colors last:border-b-0 hover:bg-muted"
+              >
+                <span className="w-[74px] shrink-0 text-xs text-faint tabular-nums">
+                  {r.published_date || "-"}
+                </span>
+                <span className="min-w-0 flex-1 truncate">
+                  {r.title}
+                  {r.version_label && (
+                    <span className="ml-2 text-xs text-faint">{r.version_label}</span>
+                  )}
+                </span>
+                <span className="w-[92px] shrink-0 truncate text-xs text-muted-foreground">
+                  {r.agency_name}
+                </span>
+                <span className="w-[62px] shrink-0 text-right text-xs text-faint">
+                  {r.detected_at ? timeAgo(r.detected_at) : ""}
+                </span>
+              </div>
+            ))}
           </Card>
-        </div>
+        </section>
       )}
     </div>
   );

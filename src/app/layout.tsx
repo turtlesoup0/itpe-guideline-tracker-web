@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
 import "./globals.css";
-import { MobileNav } from "./mobile-nav";
+import { SiteHeader } from "@/components/site-header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,13 +18,9 @@ export const metadata: Metadata = {
   description: "정보보안/개인정보/SW 가이드라인 개정 추적 시스템",
 };
 
-const NAV_ITEMS = [
-  { href: "/", label: "대시보드" },
-  { href: "/guidelines", label: "가이드라인" },
-  { href: "/announcements", label: "보도·발표" },
-  { href: "/versions", label: "변경 이력" },
-  { href: "/agencies", label: "추적 기관" },
-];
+// 첫 페인트 전에 테마 클래스를 확정해 라이트→다크 깜빡임을 막는다.
+// body 최상단에서 동기 실행되므로 헤더가 그려지기 전에 끝난다.
+const THEME_INIT = `try{var t=localStorage.getItem('theme');var d=t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d)}catch(e){}`;
 
 export default function RootLayout({
   children,
@@ -35,44 +30,20 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
-        {/* Header */}
-        <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="mx-auto flex h-14 max-w-7xl items-center px-4">
-            <Link href="/" className="mr-4 sm:mr-8 font-bold text-base sm:text-lg truncate">
-              IT 가이드라인 트래커
-            </Link>
+      <body className="flex min-h-full flex-col bg-background text-foreground">
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
 
-            {/* Desktop nav */}
-            <nav className="hidden sm:flex items-center gap-6 text-sm">
-              {NAV_ITEMS.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-muted-foreground transition-colors hover:text-foreground whitespace-nowrap"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
+        <SiteHeader />
 
-            {/* Mobile hamburger */}
-            <div className="sm:hidden ml-auto">
-              <MobileNav items={NAV_ITEMS} />
-            </div>
-          </div>
-        </header>
-
-        {/* Main */}
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-8">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-7">
           {children}
         </main>
 
-        {/* Footer */}
         <footer className="border-t py-4">
-          <div className="mx-auto max-w-7xl px-4 text-center text-xs text-muted-foreground">
+          <div className="mx-auto max-w-7xl px-4 text-center text-xs text-faint">
             IT 가이드라인 트래커 &mdash; 정보보안 / 개인정보 / SW 가이드라인 개정 추적
           </div>
         </footer>

@@ -22,7 +22,8 @@ const securityHeaders = [
       "font-src 'self' fonts.gstatic.com data:",
       "img-src 'self' data: blob: https:",
       // API 백엔드 (Cloudflared Quick Tunnel은 매 재시작마다 URL이 바뀌므로 와일드카드)
-      "connect-src 'self' https://itpe-law-tracker.vercel.app https://law-tracker.tech-insight.org https://api.tech-insight.org https://*.trycloudflare.com http://localhost:8000",
+      // 로컬 개발용 백엔드는 8001 (itpe-guideline-tracker-api). 8000은 별도 서비스가 점유.
+      "connect-src 'self' https://itpe-law-tracker.vercel.app https://law-tracker.tech-insight.org https://api.tech-insight.org https://*.trycloudflare.com http://localhost:8001",
       "frame-ancestors 'self'",
       "base-uri 'self'",
       "form-action 'self'",

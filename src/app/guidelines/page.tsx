@@ -2,63 +2,64 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Card } from "@/components/ui/card";
+import { CategoryDot, CategoryTag } from "@/components/category-dot";
+import { Tag } from "@/components/ui/tag";
+import { CATEGORY_ORDER, categoryLabel } from "@/lib/categories";
+import { cn } from "@/lib/utils";
 import { fetchGuidelines, fetchAgencies, type Guideline, type Agency } from "@/lib/api";
 import { KeywordInfo } from "@/components/keyword-info";
 
-// ── 분야 라벨 + 색상 (법령 트래커 기준) ──
-
-const CATEGORY_LABEL: Record<string, string> = {
-  info_security: "정보보안",
-  privacy: "개인정보",
-  software: "소프트웨어",
-  data: "데이터",
-  cloud: "클라우드",
-  ai: "인공지능",
-  e_gov: "전자정부",
-  finance: "금융보안",
-  other: "기타",
-};
-
-const CATEGORY_BADGE_COLOR: Record<string, string> = {
-  info_security: "bg-blue-100 text-blue-800 border-blue-200",
-  privacy: "bg-rose-100 text-rose-800 border-rose-200",
-  software: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  data: "bg-cyan-100 text-cyan-800 border-cyan-200",
-  cloud: "bg-sky-100 text-sky-800 border-sky-200",
-  ai: "bg-violet-100 text-violet-800 border-violet-200",
-  e_gov: "bg-amber-100 text-amber-800 border-amber-200",
-  finance: "bg-orange-100 text-orange-800 border-orange-200",
-  other: "bg-gray-100 text-gray-600 border-gray-200",
-};
-
-const CATEGORY_DOT_COLOR: Record<string, string> = {
-  info_security: "bg-blue-500",
-  privacy: "bg-rose-500",
-  software: "bg-emerald-500",
-  data: "bg-cyan-500",
-  cloud: "bg-sky-500",
-  ai: "bg-violet-500",
-  e_gov: "bg-amber-500",
-  finance: "bg-orange-500",
-  other: "bg-gray-400",
-};
-
+/** 표 밀도를 위해 게시일은 연·월까지만 (2026.08) */
 function formatYearMonth(dateStr: string | null): string {
   if (!dateStr) return "-";
   const d = new Date(dateStr);
-  const y = d.getFullYear();
-  const m = d.getMonth() + 1;
-  return `${y}년 ${m}월`;
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function VersionBadge({ count }: { count: number }) {
+  return (
+    <Tag className="ml-1.5 align-[1px]">
+      <svg
+        className="size-2.5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2.2}
+        strokeLinejoin="round"
+      >
+        <path d="M12 3l8.5 4.6-8.5 4.6-8.5-4.6L12 3z" />
+        <path d="M3.5 12.4l8.5 4.6 8.5-4.6" />
+      </svg>
+      버전 {count}
+    </Tag>
+  );
+}
+
+function SourceLink({ url }: { url: string }) {
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      title="원문 보기"
+      className="inline-flex text-primary hover:text-primary-hover"
+    >
+      <svg
+        className="size-[13px]"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M14 4h6v6" />
+        <path d="M20 4l-8.5 8.5" />
+        <path d="M18 14.5V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V7.5A1.5 1.5 0 0 1 5 6h4.5" />
+      </svg>
+    </a>
+  );
 }
 
 export default function GuidelinesPage() {
@@ -68,8 +69,9 @@ export default function GuidelinesPage() {
   const [search, setSearch] = useState("");
   const [groupByCategory, setGroupByCategory] = useState(false);
   const [groupByAgency, setGroupByAgency] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<string>("");
-  const [agencyFilter, setAgencyFilter] = useState<string>("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [agencyFilter, setAgencyFilter] = useState("");
+
   useEffect(() => {
     Promise.all([fetchGuidelines({ item_type: "guideline" }), fetchAgencies()])
       .then(([gl, ag]) => {
@@ -84,12 +86,9 @@ export default function GuidelinesPage() {
     [agencies],
   );
 
-  // 분야별·기관별 카운트 (필터 버튼에 표시)
   const categoryCounts = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const g of guidelines) {
-      map[g.category] = (map[g.category] || 0) + 1;
-    }
+    for (const g of guidelines) map[g.category] = (map[g.category] || 0) + 1;
     return map;
   }, [guidelines]);
 
@@ -99,11 +98,8 @@ export default function GuidelinesPage() {
       const a = agencyMap[g.agency_id];
       if (!a) continue;
       const existing = map.get(a.id);
-      if (existing) {
-        existing.count++;
-      } else {
-        map.set(a.id, { code: a.code, name: a.short_name, count: 1 });
-      }
+      if (existing) existing.count++;
+      else map.set(a.id, { code: a.code, name: a.short_name, count: 1 });
     }
     return Array.from(map.values()).sort((a, b) => b.count - a.count);
   }, [guidelines, agencyMap]);
@@ -119,330 +115,304 @@ export default function GuidelinesPage() {
           (agencyMap[g.agency_id]?.short_name || "").toLowerCase().includes(q),
       );
     }
-
-    if (categoryFilter) {
-      list = list.filter((g) => g.category === categoryFilter);
-    }
-
-    if (agencyFilter) {
-      list = list.filter((g) => {
-        const a = agencyMap[g.agency_id];
-        return a?.code === agencyFilter;
-      });
-    }
+    if (categoryFilter) list = list.filter((g) => g.category === categoryFilter);
+    if (agencyFilter)
+      list = list.filter((g) => agencyMap[g.agency_id]?.code === agencyFilter);
 
     // 정렬: 게시일 내림차순 고정 + 분야/기관 그룹핑 (AND 조건)
-    const sorted = [...list].sort((a, b) => {
-      // 1차: 분야 그룹핑 (켜져 있을 때)
+    return [...list].sort((a, b) => {
       if (groupByCategory) {
-        const catCmp = (CATEGORY_LABEL[a.category] || a.category).localeCompare(
-          CATEGORY_LABEL[b.category] || b.category,
+        const cmp = categoryLabel(a.category).localeCompare(
+          categoryLabel(b.category),
           "ko",
         );
-        if (catCmp !== 0) return catCmp;
+        if (cmp !== 0) return cmp;
       }
-
-      // 2차: 기관 그룹핑 (켜져 있을 때)
       if (groupByAgency) {
-        const aName = agencyMap[a.agency_id]?.short_name || "";
-        const bName = agencyMap[b.agency_id]?.short_name || "";
-        const agCmp = aName.localeCompare(bName, "ko");
-        if (agCmp !== 0) return agCmp;
+        const cmp = (agencyMap[a.agency_id]?.short_name || "").localeCompare(
+          agencyMap[b.agency_id]?.short_name || "",
+          "ko",
+        );
+        if (cmp !== 0) return cmp;
       }
-
-      // 최종: 게시일 내림차순 (항상)
-      const aDate = a.latest_published_date || "";
-      const bDate = b.latest_published_date || "";
-      return bDate.localeCompare(aDate);
+      return (b.latest_published_date || "").localeCompare(a.latest_published_date || "");
     });
+  }, [
+    guidelines,
+    agencyMap,
+    search,
+    groupByCategory,
+    groupByAgency,
+    categoryFilter,
+    agencyFilter,
+  ]);
 
-    return sorted;
-  }, [guidelines, agencies, agencyMap, search, groupByCategory, groupByAgency, categoryFilter, agencyFilter]);
+  const hasFilter = !!(search || categoryFilter || agencyFilter);
+  const resetFilters = () => {
+    setSearch("");
+    setCategoryFilter("");
+    setAgencyFilter("");
+  };
+
+  const toggleClass = (on: boolean) =>
+    cn(
+      "inline-flex h-[30px] items-center gap-1.5 rounded-lg border px-2.5 text-xs transition-colors",
+      on
+        ? "border-primary bg-primary-soft font-medium text-primary"
+        : "text-muted-foreground hover:border-border-strong hover:text-foreground",
+    );
+
+  const chipClass = (on: boolean) =>
+    cn(
+      "inline-flex h-[26px] items-center gap-1.5 rounded-full border px-2.5 text-xs transition-colors",
+      on
+        ? "border-primary bg-primary-soft font-medium text-primary"
+        : "text-muted-foreground hover:border-border-strong hover:text-foreground",
+    );
 
   return (
-    <div className="space-y-5">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">가이드라인</h1>
-          <KeywordInfo itemType="guideline" />
+    <div className="space-y-4">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-[23px] font-semibold tracking-tight">가이드라인</h1>
+            <KeywordInfo itemType="guideline" />
+          </div>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            기관에서 수집한 가이드라인 문서. 보도·발표는 별도 탭에서 봅니다.
+          </p>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">
-          수집된 가이드라인 {guidelines.length}건
-        </p>
+        <span className="pb-1 text-xs text-muted-foreground tabular-nums">
+          {hasFilter
+            ? `${filtered.length}건 / ${guidelines.length}건`
+            : `${guidelines.length}건`}
+        </span>
       </div>
 
       {error && (
-        <Card>
-          <CardContent className="pt-6 text-amber-600">
-            백엔드 연결 실패: {error}
-          </CardContent>
-        </Card>
+        <Card className="gap-0 px-4 py-5 text-sm text-warning">백엔드 연결 실패: {error}</Card>
       )}
 
-      {/* 검색바 */}
       {!error && guidelines.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 max-w-md">
+        <Card className="gap-0 overflow-hidden">
+          {/* 검색 + 정렬 */}
+          <div className="flex flex-wrap items-center gap-2.5 px-3.5 py-3">
+            <div className="relative min-w-[220px] flex-1 sm:max-w-[336px]">
               <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+                className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-faint"
                 fill="none"
                 stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
                 viewBox="0 0 24 24"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
+                <circle cx="11" cy="11" r="7" />
+                <path d="M20 20l-3.8-3.8" />
               </svg>
               <input
                 type="text"
-                placeholder="제목 또는 기관명으로 검색..."
+                placeholder="제목 또는 기관명 검색"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-9 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                className="h-8 w-full rounded-lg border bg-card pr-2.5 pl-8 text-[13px] outline-none placeholder:text-faint focus:border-primary focus:ring-3 focus:ring-primary-soft"
               />
-              {search && (
-                <button
-                  onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  ✕
-                </button>
-              )}
             </div>
-            <span className="text-sm text-muted-foreground whitespace-nowrap">
-              {filtered.length}건{search || categoryFilter || agencyFilter ? ` / ${guidelines.length}건` : ""}
+
+            <span className="text-[11.5px] text-faint">정렬</span>
+            <span className="inline-flex h-[30px] items-center rounded-lg border border-dashed px-2.5 text-xs text-muted-foreground">
+              게시일 ↓
             </span>
-          </div>
-
-          {/* 정렬 토글 */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">정렬</span>
-            <span className="text-xs text-muted-foreground opacity-50">게시일↓ 고정</span>
             <button
+              type="button"
               onClick={() => setGroupByCategory((v) => !v)}
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium border transition-all ${
-                groupByCategory
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-muted text-muted-foreground border-transparent hover:bg-muted/80"
-              }`}
+              className={toggleClass(groupByCategory)}
             >
-              + 분야별
+              분야별 묶기
             </button>
             <button
+              type="button"
               onClick={() => setGroupByAgency((v) => !v)}
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium border transition-all ${
-                groupByAgency
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-muted text-muted-foreground border-transparent hover:bg-muted/80"
-              }`}
+              className={toggleClass(groupByAgency)}
             >
-              + 기관별
+              기관별 묶기
             </button>
+
+            {hasFilter && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="ml-auto inline-flex h-[30px] items-center gap-1.5 rounded-lg border-transparent px-2.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <svg
+                  className="size-3"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2.2}
+                  strokeLinecap="round"
+                >
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+                필터 초기화
+              </button>
+            )}
           </div>
 
-          {/* 분야 필터 토글 */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-muted-foreground mr-1">필터</span>
-            {Object.entries(CATEGORY_LABEL)
-              .filter(([key]) => categoryCounts[key])
-              .sort(([, a], [, b]) => a.localeCompare(b, "ko"))
-              .map(([key, label]) => (
+          {/* 분야 필터 */}
+          <div className="flex items-start gap-2.5 border-t px-3.5 py-3">
+            <span className="w-7 shrink-0 pt-1.5 text-[11.5px] text-faint">분야</span>
+            <div className="flex flex-1 flex-wrap items-center gap-1.5">
+              {CATEGORY_ORDER.filter((key) => categoryCounts[key]).map((key) => (
                 <button
                   key={key}
-                  onClick={() => setCategoryFilter((prev) => (prev === key ? "" : key))}
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium border transition-all ${
-                    categoryFilter === key
-                      ? CATEGORY_BADGE_COLOR[key] + " ring-2 ring-offset-1 ring-current/20"
-                      : "bg-muted text-muted-foreground border-transparent hover:bg-muted/80"
-                  }`}
+                  type="button"
+                  onClick={() =>
+                    setCategoryFilter((prev) => (prev === key ? "" : key))
+                  }
+                  className={chipClass(categoryFilter === key)}
                 >
-                  <span className={`inline-block w-2 h-2 rounded-full ${CATEGORY_DOT_COLOR[key]}`} />
-                  {label}
-                  <span className="opacity-60">{categoryCounts[key]}</span>
+                  <CategoryDot category={key} />
+                  {categoryLabel(key)}
+                  <span className="text-[11.5px] opacity-70 tabular-nums">
+                    {categoryCounts[key]}
+                  </span>
                 </button>
               ))}
+            </div>
           </div>
 
           {/* 기관 필터 */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-muted-foreground mr-1 invisible sm:visible w-0 sm:w-auto">기관</span>
-            {agencyOptions.map((opt) => (
-              <button
-                key={opt.code}
-                onClick={() => setAgencyFilter((prev) => (prev === opt.code ? "" : opt.code))}
-                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium border transition-all ${
-                  agencyFilter === opt.code
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-muted text-muted-foreground border-transparent hover:bg-muted/80"
-                }`}
-              >
-                {opt.name}
-                <span className="opacity-60">{opt.count}</span>
-              </button>
-            ))}
+          <div className="flex items-start gap-2.5 border-t px-3.5 py-3">
+            <span className="w-7 shrink-0 pt-1.5 text-[11.5px] text-faint">기관</span>
+            <div className="flex flex-1 flex-wrap items-center gap-1.5">
+              {agencyOptions.map((opt) => (
+                <button
+                  key={opt.code}
+                  type="button"
+                  onClick={() =>
+                    setAgencyFilter((prev) => (prev === opt.code ? "" : opt.code))
+                  }
+                  className={chipClass(agencyFilter === opt.code)}
+                >
+                  {opt.name}
+                  <span className="text-[11.5px] opacity-70 tabular-nums">
+                    {opt.count}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
-
-      {!error && guidelines.length === 0 && (
-        <Card>
-          <CardContent className="pt-6 text-center text-muted-foreground space-y-2">
-            <p className="text-lg font-medium">아직 등록된 가이드라인이 없습니다</p>
-            <p>크롤링으로 수집된 항목이 가이드라인으로 등록되면 여기에 표시됩니다.</p>
-          </CardContent>
         </Card>
       )}
 
-      {/* ── 데스크톱: 테이블 ── */}
+      {!error && guidelines.length === 0 && (
+        <Card className="gap-0 space-y-1.5 px-4 py-11 text-center">
+          <p className="font-medium">아직 등록된 가이드라인이 없습니다</p>
+          <p className="text-sm text-muted-foreground">
+            크롤링으로 수집된 항목이 가이드라인으로 등록되면 여기에 표시됩니다.
+          </p>
+        </Card>
+      )}
+
+      {/* 데스크톱: 표 */}
       {filtered.length > 0 && (
-        <div className="hidden md:block rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>제목</TableHead>
-                <TableHead className="w-[90px]">게시일 ↓</TableHead>
-                <TableHead className="w-[90px]">
-                  기관{groupByAgency && <span className="text-xs ml-0.5 text-primary">▸</span>}
-                </TableHead>
-                <TableHead className="w-[90px]">
-                  분야{groupByCategory && <span className="text-xs ml-0.5 text-primary">▸</span>}
-                </TableHead>
-                <TableHead className="w-[60px]">링크</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <Card className="hidden gap-0 overflow-hidden md:block">
+          {/* table-fixed: 긴 제목이 열 폭을 밀어내 게시일·원문 열을 침범하지 않게 한다 */}
+          <table className="w-full table-fixed border-collapse text-[13px]">
+            <thead>
+              <tr className="text-[11.5px] text-faint">
+                <th className="border-b px-3.5 py-2.5 text-left font-medium">제목</th>
+                <th className="w-[104px] border-b px-3.5 py-2.5 text-left font-medium">
+                  분야{groupByCategory && <span className="ml-0.5 text-primary">▸</span>}
+                </th>
+                <th className="w-[96px] border-b px-3.5 py-2.5 text-left font-medium">
+                  기관{groupByAgency && <span className="ml-0.5 text-primary">▸</span>}
+                </th>
+                <th className="w-[86px] border-b px-3.5 py-2.5 text-right font-medium">
+                  게시일
+                </th>
+                <th className="w-[58px] border-b px-3.5 py-2.5 text-center font-medium">
+                  원문
+                </th>
+              </tr>
+            </thead>
+            <tbody>
               {filtered.map((gl) => (
-                <TableRow key={gl.id}>
-                  <TableCell className="font-medium max-w-[420px]">
+                <tr
+                  key={gl.id}
+                  className="transition-colors last:[&>td]:border-b-0 hover:bg-muted"
+                >
+                  <td className="border-b px-3.5 py-2 break-words">
                     <Link
                       href={`/guidelines/${gl.id}`}
-                      className="hover:text-blue-600 hover:underline"
+                      className="font-medium underline-offset-2 hover:text-primary hover:underline"
                     >
                       {gl.title}
                     </Link>
-                    {gl.version_count > 1 && (
-                      <Link
-                        href={`/guidelines/${gl.id}`}
-                        className="ml-2 text-xs text-blue-600 hover:underline"
-                      >
-                        📚 {gl.version_count}개 버전
-                      </Link>
-                    )}
+                    {gl.version_count > 1 && <VersionBadge count={gl.version_count} />}
                     {gl.duplicate_of_id && (
                       <Link
                         href={`/guidelines/${gl.duplicate_of_id}`}
                         title="다른 기관에서 동일 PDF가 이미 수집됨"
-                        className="ml-2 inline-flex items-center text-xs text-amber-600 hover:underline"
                       >
-                        🔁 중복 콘텐츠
+                        <Tag tone="warning" className="ml-1.5 align-[1px]">
+                          중복 콘텐츠
+                        </Tag>
                       </Link>
                     )}
-                  </TableCell>
-                  <TableCell className="text-sm tabular-nums whitespace-nowrap">
+                  </td>
+                  <td className="border-b px-3.5 py-2">
+                    <CategoryTag category={gl.category} />
+                  </td>
+                  <td className="border-b px-3.5 py-2 text-xs text-muted-foreground">
+                    {agencyMap[gl.agency_id]?.short_name || "-"}
+                  </td>
+                  <td className="border-b px-3.5 py-2 text-right text-xs text-muted-foreground tabular-nums">
                     {formatYearMonth(gl.latest_published_date)}
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm">
-                      {agencyMap[gl.agency_id]?.short_name || "-"}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={CATEGORY_BADGE_COLOR[gl.category] || ""}
-                    >
-                      {CATEGORY_LABEL[gl.category] || gl.category}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {gl.source_url && (
-                      <a
-                        href={gl.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline text-sm"
-                      >
-                        원문
-                      </a>
-                    )}
-                  </TableCell>
-                </TableRow>
+                  </td>
+                  <td className="border-b px-3.5 py-2 text-center">
+                    {gl.source_url && <SourceLink url={gl.source_url} />}
+                  </td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
-        </div>
+            </tbody>
+          </table>
+        </Card>
       )}
 
-      {/* ── 모바일: 카드 리스트 ── */}
+      {/* 모바일: 카드 목록 */}
       {filtered.length > 0 && (
-        <div className="md:hidden space-y-2">
-          {/* 모바일 정렬 컨트롤 */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>게시일↓</span>
-            <button
-              onClick={() => setGroupByCategory((v) => !v)}
-              className={`px-2 py-1 rounded ${groupByCategory ? "bg-primary text-primary-foreground" : "bg-muted"}`}
-            >
-              +분야
-            </button>
-            <button
-              onClick={() => setGroupByAgency((v) => !v)}
-              className={`px-2 py-1 rounded ${groupByAgency ? "bg-primary text-primary-foreground" : "bg-muted"}`}
-            >
-              +기관
-            </button>
-          </div>
-
+        <div className="space-y-2 md:hidden">
           {filtered.map((gl) => (
-            <div key={gl.id} className="rounded-lg border p-3 space-y-1.5">
+            <Card key={gl.id} className="space-y-2 px-3 py-2.5">
               <div className="flex items-start gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium leading-snug">{gl.title}</p>
-                </div>
-                {gl.source_url && (
-                  <a
-                    href={gl.source_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline text-xs whitespace-nowrap shrink-0"
-                  >
-                    원문
-                  </a>
-                )}
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge
-                  variant="outline"
-                  className={`text-[11px] px-1.5 py-0 ${CATEGORY_BADGE_COLOR[gl.category] || ""}`}
+                <Link
+                  href={`/guidelines/${gl.id}`}
+                  className="min-w-0 flex-1 text-sm leading-snug font-medium"
                 >
-                  {CATEGORY_LABEL[gl.category] || gl.category}
-                </Badge>
+                  {gl.title}
+                </Link>
+                {gl.source_url && <SourceLink url={gl.source_url} />}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <CategoryTag category={gl.category} />
                 <span className="text-xs text-muted-foreground">
                   {agencyMap[gl.agency_id]?.short_name || "-"}
                 </span>
-                <span className="text-xs text-muted-foreground tabular-nums">
+                <span className="text-xs text-faint tabular-nums">
                   {formatYearMonth(gl.latest_published_date)}
                 </span>
-                {gl.version_count > 1 && (
-                  <span className="text-xs text-muted-foreground">
-                    {gl.version_count}개 버전
-                  </span>
-                )}
+                {gl.version_count > 1 && <Tag>버전 {gl.version_count}</Tag>}
+                {gl.duplicate_of_id && <Tag tone="warning">중복 콘텐츠</Tag>}
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
 
-      {search && filtered.length === 0 && guidelines.length > 0 && (
-        <Card>
-          <CardContent className="pt-6 text-center text-muted-foreground">
-            <p>&ldquo;{search}&rdquo; 검색 결과가 없습니다.</p>
-          </CardContent>
+      {hasFilter && filtered.length === 0 && guidelines.length > 0 && (
+        <Card className="gap-0 px-4 py-11 text-center text-sm text-muted-foreground">
+          조건에 맞는 가이드라인이 없습니다. 필터를 지우고 다시 시도해 보세요.
         </Card>
       )}
     </div>

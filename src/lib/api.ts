@@ -259,3 +259,19 @@ export interface GuidelineDetail extends Guideline {
 export async function fetchGuidelineDetail(id: number): Promise<GuidelineDetail> {
   return apiFetch<GuidelineDetail>(`/guidelines/${id}`);
 }
+
+export interface KeywordMeta {
+  description: string;
+  keywords: string[];
+}
+
+/**
+ * 수집 키워드 안내. keyword-info 가 API_BASE 를 따로 들고 있다가
+ * 기본값이 낡아(8000) 조용히 fallback 으로 새던 것을 여기로 합친다.
+ */
+export async function fetchKeywordMeta(
+  itemType: ItemType,
+): Promise<KeywordMeta> {
+  const all = await apiFetch<Record<string, KeywordMeta>>("/meta/keywords");
+  return all[itemType];
+}

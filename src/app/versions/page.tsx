@@ -1,48 +1,25 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import Link from "next/link";
+import { Card } from "@/components/ui/card";
+import { CategoryTag } from "@/components/category-dot";
+import { Tag } from "@/components/ui/tag";
+import { cn } from "@/lib/utils";
 import { fetchRecentChanges, type RecentChange } from "@/lib/api";
 
-const CATEGORY_LABEL: Record<string, string> = {
-  info_security: "정보보안",
-  privacy: "개인정보",
-  software: "소프트웨어",
-  data: "데이터",
-  cloud: "클라우드",
-  ai: "인공지능",
-  e_gov: "전자정부",
-  finance: "금융보안",
-  other: "기타",
-};
-
-const CATEGORY_BADGE_COLOR: Record<string, string> = {
-  info_security: "bg-blue-100 text-blue-800 border-blue-200",
-  privacy: "bg-rose-100 text-rose-800 border-rose-200",
-  software: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  data: "bg-cyan-100 text-cyan-800 border-cyan-200",
-  cloud: "bg-sky-100 text-sky-800 border-sky-200",
-  ai: "bg-violet-100 text-violet-800 border-violet-200",
-  e_gov: "bg-amber-100 text-amber-800 border-amber-200",
-  finance: "bg-orange-100 text-orange-800 border-orange-200",
-  other: "bg-gray-100 text-gray-600 border-gray-200",
-};
-
 const PERIOD_OPTIONS = [
-  { value: 7, label: "최근 7일" },
-  { value: 30, label: "최근 30일" },
-  { value: 90, label: "최근 90일" },
-  { value: 365, label: "최근 1년" },
+  { value: 7, label: "7일" },
+  { value: 30, label: "30일" },
+  { value: 90, label: "90일" },
+  { value: 365, label: "1년" },
 ];
+
+const TYPE_OPTIONS = [
+  { value: "", label: "전체" },
+  { value: "new", label: "신규" },
+  { value: "updated", label: "갱신" },
+] as const;
 
 function timeAgo(isoStr: string): string {
   const diff = Date.now() - new Date(isoStr).getTime();
@@ -51,21 +28,22 @@ function timeAgo(isoStr: string): string {
   if (mins < 60) return `${mins}분 전`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}시간 전`;
-  const days = Math.floor(hours / 24);
-  return `${days}일 전`;
+  return `${Math.floor(hours / 24)}일 전`;
 }
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "-";
   const d = new Date(dateStr);
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(
+    d.getDate(),
+  ).padStart(2, "0")}`;
 }
 
 export default function VersionsPage() {
   const [changes, setChanges] = useState<RecentChange[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [days, setDays] = useState(90);
-  const [agencyFilter, setAgencyFilter] = useState<string>("");
+  const [agencyFilter, setAgencyFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState<"" | "new" | "updated">("");
 
   useEffect(() => {
@@ -76,9 +54,7 @@ export default function VersionsPage() {
 
   const agencies = useMemo(() => {
     const set = new Map<string, string>();
-    for (const c of changes) {
-      set.set(c.agency_code, c.agency_name);
-    }
+    for (const c of changes) set.set(c.agency_code, c.agency_name);
     return Array.from(set.entries());
   }, [changes]);
 
@@ -89,193 +65,205 @@ export default function VersionsPage() {
     return list;
   }, [changes, agencyFilter, typeFilter]);
 
-  const stats = useMemo(() => {
-    const newCount = filtered.filter((c) => c.change_type === "new").length;
-    const updatedCount = filtered.filter((c) => c.change_type === "updated").length;
-    return { newCount, updatedCount, total: filtered.length };
-  }, [filtered]);
+  const stats = useMemo(
+    () => ({
+      total: filtered.length,
+      newCount: filtered.filter((c) => c.change_type === "new").length,
+      updatedCount: filtered.filter((c) => c.change_type === "updated").length,
+    }),
+    [filtered],
+  );
+
+  const segClass = (on: boolean) =>
+    cn(
+      "inline-flex h-[30px] items-center rounded-lg border px-2.5 text-xs transition-colors",
+      on
+        ? "border-primary bg-primary-soft font-medium text-primary"
+        : "text-muted-foreground hover:border-border-strong hover:text-foreground",
+    );
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">변경 이력</h1>
-        <p className="mt-2 text-muted-foreground">
-          최근 신규 등록 또는 개정된 가이드라인을 추적합니다.
-        </p>
-      </div>
-
-      {error && (
-        <Card>
-          <CardContent className="pt-6 text-amber-600">
-            백엔드 연결 실패: {error}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Summary Cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>전체 변경</CardDescription>
-            <CardTitle className="text-3xl">{stats.total}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>신규 등록</CardDescription>
-            <CardTitle className="text-3xl text-blue-600">{stats.newCount}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>버전 갱신</CardDescription>
-            <CardTitle className="text-3xl text-emerald-600">{stats.updatedCount}</CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">기간:</span>
-          {PERIOD_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setDays(opt.value)}
-              className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
-                days === opt.value
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+    <div className="space-y-4">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <h1 className="text-[23px] font-semibold tracking-tight">변경 이력</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            최근 신규 등록 또는 개정된 가이드라인을 추적합니다.
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">유형:</span>
-          {[
-            { v: "", l: "전체" },
-            { v: "new", l: "신규" },
-            { v: "updated", l: "갱신" },
-          ].map((opt) => (
-            <button
-              key={opt.v}
-              onClick={() => setTypeFilter(opt.v as "" | "new" | "updated")}
-              className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
-                typeFilter === opt.v
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              }`}
-            >
-              {opt.l}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">기관:</span>
-          <select
-            value={agencyFilter}
-            onChange={(e) => setAgencyFilter(e.target.value)}
-            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm"
-          >
-            <option value="">전체</option>
-            {agencies.map(([code, name]) => (
-              <option key={code} value={code}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <span className="text-sm text-muted-foreground ml-auto">
+        <span className="pb-1 text-xs text-muted-foreground tabular-nums">
           {filtered.length}건
         </span>
       </div>
 
-      {/* Table */}
+      {error && (
+        <Card className="gap-0 px-4 py-5 text-sm text-warning">백엔드 연결 실패: {error}</Card>
+      )}
+
+      {/* 지표 */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card className="flex flex-col gap-1.5 px-4 py-3.5">
+          <span className="text-xs font-medium text-muted-foreground">전체 변경</span>
+          <span className="text-[30px] leading-none font-semibold tracking-tighter tabular-nums">
+            {stats.total}
+          </span>
+        </Card>
+        <Card className="flex flex-col gap-1.5 px-4 py-3.5">
+          <span className="text-xs font-medium text-muted-foreground">신규 등록</span>
+          <span className="text-[30px] leading-none font-semibold tracking-tighter text-primary tabular-nums">
+            {stats.newCount}
+          </span>
+        </Card>
+        <Card className="flex flex-col gap-1.5 px-4 py-3.5">
+          <span className="text-xs font-medium text-muted-foreground">버전 갱신</span>
+          <span className="text-[30px] leading-none font-semibold tracking-tighter tabular-nums">
+            {stats.updatedCount}
+          </span>
+        </Card>
+      </div>
+
+      {/* 필터 */}
+      <Card className="flex flex-row flex-wrap items-center gap-x-2.5 gap-y-2 px-3.5 py-3">
+        <span className="text-[11.5px] text-faint">기간</span>
+        {PERIOD_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => setDays(opt.value)}
+            className={segClass(days === opt.value)}
+          >
+            {opt.label}
+          </button>
+        ))}
+
+        <span className="ml-2 text-[11.5px] text-faint">유형</span>
+        {TYPE_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => setTypeFilter(opt.value)}
+            className={segClass(typeFilter === opt.value)}
+          >
+            {opt.label}
+          </button>
+        ))}
+
+        <span className="ml-2 text-[11.5px] text-faint">기관</span>
+        <select
+          value={agencyFilter}
+          onChange={(e) => setAgencyFilter(e.target.value)}
+          className="h-[30px] rounded-lg border bg-card px-2 text-xs text-muted-foreground outline-none focus:border-primary focus:ring-3 focus:ring-primary-soft"
+        >
+          <option value="">전체</option>
+          {agencies.map(([code, name]) => (
+            <option key={code} value={code}>
+              {name}
+            </option>
+          ))}
+        </select>
+      </Card>
+
+      {/* 표 */}
       {filtered.length > 0 && (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[70px]">유형</TableHead>
-                <TableHead>제목</TableHead>
-                <TableHead className="w-[80px]">기관</TableHead>
-                <TableHead className="w-[80px]">분야</TableHead>
-                <TableHead className="w-[100px]">게시일</TableHead>
-                <TableHead className="w-[80px]">감지</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <Card className="gap-0 overflow-hidden">
+          {/* table-fixed: 긴 제목이 게시일·감지 열을 침범하지 않게 한다 */}
+          <table className="w-full table-fixed border-collapse text-[13px]">
+            <thead>
+              <tr className="text-[11.5px] text-faint">
+                <th className="w-[62px] border-b px-3.5 py-2.5 text-left font-medium">
+                  유형
+                </th>
+                <th className="border-b px-3.5 py-2.5 text-left font-medium">제목</th>
+                <th className="w-[100px] border-b px-3.5 py-2.5 text-left font-medium">
+                  분야
+                </th>
+                <th className="w-[92px] border-b px-3.5 py-2.5 text-left font-medium">
+                  기관
+                </th>
+                <th className="w-[150px] border-b px-3.5 py-2.5 text-right font-medium">
+                  게시일
+                </th>
+                <th className="w-[78px] border-b px-3.5 py-2.5 text-right font-medium">
+                  감지
+                </th>
+              </tr>
+            </thead>
+            <tbody>
               {filtered.map((item, i) => (
-                <TableRow key={`${item.guideline_id}-${i}`}>
-                  <TableCell>
+                <tr
+                  key={`${item.guideline_id}-${i}`}
+                  className="transition-colors last:[&>td]:border-b-0 hover:bg-muted"
+                >
+                  <td className="border-b px-3.5 py-2">
                     {item.change_type === "new" ? (
-                      <Badge className="bg-blue-500 text-white">신규</Badge>
+                      <Tag tone="primary">신규</Tag>
                     ) : (
-                      <Badge className="bg-emerald-500 text-white">갱신</Badge>
+                      <Tag>갱신</Tag>
                     )}
-                  </TableCell>
-                  <TableCell className="font-medium max-w-[400px]">
-                    <div className="truncate">{item.title}</div>
+                  </td>
+                  <td className="border-b px-3.5 py-2 break-words">
+                    <Link
+                      href={`/guidelines/${item.guideline_id}`}
+                      className="font-medium underline-offset-2 hover:text-primary hover:underline"
+                    >
+                      {item.title}
+                    </Link>
                     {item.version_label && (
-                      <span className="text-xs text-muted-foreground">
-                        {item.version_label}
-                      </span>
+                      <span className="ml-2 text-xs text-faint">{item.version_label}</span>
                     )}
                     {item.version_count > 1 && (
-                      <span className="text-xs text-muted-foreground ml-2">
-                        ({item.version_count}개 버전)
+                      <span className="ml-2 text-xs text-faint">
+                        버전 {item.version_count}
                       </span>
                     )}
-                  </TableCell>
-                  <TableCell className="text-sm">{item.agency_name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={`text-xs ${CATEGORY_BADGE_COLOR[item.category] || ""}`}>
-                      {CATEGORY_LABEL[item.category] || item.category}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm tabular-nums">
+                  </td>
+                  <td className="border-b px-3.5 py-2">
+                    <CategoryTag category={item.category} />
+                  </td>
+                  <td className="border-b px-3.5 py-2 text-xs text-muted-foreground">
+                    {item.agency_name}
+                  </td>
+                  <td className="border-b px-3.5 py-2 text-right text-xs tabular-nums">
                     {item.previous_published_date ? (
                       <div className="flex flex-col leading-tight">
-                        <span className="text-xs text-muted-foreground line-through">
+                        <span className="text-faint line-through">
                           {formatDate(item.previous_published_date)}
                           {item.previous_version_label && (
-                            <span className="ml-1 italic">({item.previous_version_label})</span>
+                            <span className="ml-1">({item.previous_version_label})</span>
                           )}
                         </span>
-                        <span className="text-emerald-700 font-medium">
+                        <span className="font-medium text-primary">
                           → {formatDate(item.published_date)}
                         </span>
                       </div>
                     ) : (
-                      formatDate(item.published_date)
+                      <span className="text-muted-foreground">
+                        {formatDate(item.published_date)}
+                      </span>
                     )}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
+                  </td>
+                  <td className="border-b px-3.5 py-2 text-right text-xs text-faint">
                     {timeAgo(item.detected_at)}
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
-        </div>
+            </tbody>
+          </table>
+        </Card>
       )}
 
       {!error && filtered.length === 0 && changes.length > 0 && (
-        <Card>
-          <CardContent className="pt-6 text-center text-muted-foreground">
-            선택한 기간/기관에 해당하는 변경 이력이 없습니다.
-          </CardContent>
+        <Card className="gap-0 px-4 py-11 text-center text-sm text-muted-foreground">
+          선택한 기간·유형·기관에 해당하는 변경 이력이 없습니다.
         </Card>
       )}
 
       {!error && changes.length === 0 && (
-        <Card>
-          <CardContent className="pt-6 text-center text-muted-foreground space-y-2">
-            <p className="text-lg font-medium">변경 이력이 없습니다</p>
-            <p>크롤링이 실행되면 신규/갱신 가이드라인이 여기에 표시됩니다.</p>
-          </CardContent>
+        <Card className="gap-0 space-y-1.5 px-4 py-11 text-center">
+          <p className="font-medium">변경 이력이 없습니다</p>
+          <p className="text-sm text-muted-foreground">
+            크롤링이 실행되면 신규·갱신 가이드라인이 여기에 표시됩니다.
+          </p>
         </Card>
       )}
     </div>

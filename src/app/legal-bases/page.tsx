@@ -1,16 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Card } from "@/components/ui/card";
+import { Tag } from "@/components/ui/tag";
 import { fetchLegalBases, type LegalBasis } from "@/lib/api";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -31,67 +23,85 @@ export default function LegalBasesPage() {
   }, []);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">법적 근거</h1>
-        <p className="mt-2 text-muted-foreground">
-          가이드라인 발행의 법적 근거가 되는 고시/훈령/예규 목록입니다.
-          법제처 행정규칙 API로 수집됩니다.
-        </p>
+    <div className="space-y-4">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <h1 className="text-[23px] font-semibold tracking-tight">법적 근거</h1>
+          <p className="mt-1.5 max-w-3xl text-sm text-muted-foreground">
+            가이드라인 발행의 근거가 되는 고시·훈령·예규 목록입니다. 법제처 행정규칙
+            API로 수집됩니다.
+          </p>
+        </div>
+        {bases.length > 0 && (
+          <span className="pb-1 text-xs text-muted-foreground tabular-nums">
+            {bases.length}건
+          </span>
+        )}
       </div>
 
       {error && (
-        <Card>
-          <CardContent className="pt-6 text-amber-600">
-            백엔드 연결 실패: {error}
-          </CardContent>
+        <Card className="gap-0 px-4 py-5 text-sm text-warning">
+          백엔드 연결 실패: {error}
         </Card>
       )}
 
       {!error && bases.length === 0 && (
-        <Card>
-          <CardContent className="pt-6 text-center text-muted-foreground space-y-2">
-            <p className="text-lg font-medium">아직 등록된 법적 근거가 없습니다</p>
-            <p>
-              법제처 행정규칙 API 연동 후 고시/훈령이 자동으로 수집됩니다.
-              수집된 고시/훈령에서 &quot;~가이드라인을 정하여 고시한다&quot; 같은 위임 조항을 추출하여
-              가이드라인 매핑에 활용합니다.
-            </p>
-          </CardContent>
+        <Card className="gap-0 space-y-1.5 px-4 py-11 text-center">
+          <p className="font-medium">아직 등록된 법적 근거가 없습니다</p>
+          <p className="mx-auto max-w-xl text-sm text-muted-foreground">
+            법제처 행정규칙 API 연동 후 고시·훈령이 자동으로 수집됩니다. 수집된
+            고시·훈령에서 위임 조항을 추출해 가이드라인 매핑에 활용합니다.
+          </p>
         </Card>
       )}
 
       {bases.length > 0 && (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>유형</TableHead>
-              <TableHead>제목</TableHead>
-              <TableHead>모법</TableHead>
-              <TableHead>공포일</TableHead>
-              <TableHead>위임 항목</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {bases.map((basis) => (
-              <TableRow key={basis.id}>
-                <TableCell>
-                  <Badge variant="outline">
-                    {TYPE_LABEL[basis.basis_type] || basis.basis_type}
-                  </Badge>
-                </TableCell>
-                <TableCell className="font-medium max-w-[400px]">{basis.title}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {basis.parent_law_name || "-"}
-                </TableCell>
-                <TableCell>{basis.promulgation_date || "-"}</TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{basis.mandate_count}건</Badge>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <Card className="gap-0 overflow-hidden">
+          {/* table-fixed: 긴 제목이 공포일·위임 항목 열을 침범하지 않게 한다 */}
+          <table className="w-full table-fixed border-collapse text-[13px]">
+            <thead>
+              <tr className="text-[11.5px] text-faint">
+                <th className="w-[62px] border-b px-3.5 py-2.5 text-left font-medium">
+                  유형
+                </th>
+                <th className="border-b px-3.5 py-2.5 text-left font-medium">제목</th>
+                <th className="w-[200px] border-b px-3.5 py-2.5 text-left font-medium">
+                  모법
+                </th>
+                <th className="w-[100px] border-b px-3.5 py-2.5 text-right font-medium">
+                  공포일
+                </th>
+                <th className="w-[86px] border-b px-3.5 py-2.5 text-right font-medium">
+                  위임 항목
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {bases.map((basis) => (
+                <tr
+                  key={basis.id}
+                  className="transition-colors last:[&>td]:border-b-0 hover:bg-muted"
+                >
+                  <td className="border-b px-3.5 py-2">
+                    <Tag>{TYPE_LABEL[basis.basis_type] || basis.basis_type}</Tag>
+                  </td>
+                  <td className="border-b px-3.5 py-2 font-medium break-words">
+                    {basis.title}
+                  </td>
+                  <td className="border-b px-3.5 py-2 text-xs break-words text-muted-foreground">
+                    {basis.parent_law_name || "-"}
+                  </td>
+                  <td className="border-b px-3.5 py-2 text-right text-xs text-muted-foreground tabular-nums">
+                    {basis.promulgation_date || "-"}
+                  </td>
+                  <td className="border-b px-3.5 py-2 text-right tabular-nums">
+                    {basis.mandate_count}건
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
       )}
     </div>
   );
