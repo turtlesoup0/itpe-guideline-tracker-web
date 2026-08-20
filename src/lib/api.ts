@@ -48,9 +48,22 @@ export interface Guideline {
   source_url: string | null;
   pdf_url: string | null;
   duplicate_of_id: number | null;
+  excluded_at: string | null;
+  exclusion_category: ExclusionCategory | null;
+  exclusion_note: string | null;
   latest_published_date: string | null;
   version_count: number;
 }
+
+/** 수집 제외 사유 — 백엔드 ExclusionCategory 와 값이 일치해야 한다. */
+export type ExclusionCategory =
+  | "physical_security"
+  | "intl_agreement"
+  | "education_promo"
+  | "plan_report"
+  | "non_it"
+  | "duplicate"
+  | "other";
 
 export interface LegalBasis {
   id: number;
@@ -201,13 +214,31 @@ export async function fetchGuidelines(params?: {
   agency_code?: string;
   category?: string;
   item_type?: ItemType;
+  /** true 면 수집 제외 처리된 항목만 조회 (기본: 제외 안 된 항목만) */
+  excluded?: boolean;
 }): Promise<Guideline[]> {
   const search = new URLSearchParams();
   if (params?.agency_code) search.set("agency_code", params.agency_code);
   if (params?.category) search.set("category", params.category);
   if (params?.item_type) search.set("item_type", params.item_type);
+  if (params?.excluded) search.set("excluded", "true");
   const qs = search.toString();
   return apiFetch<Guideline[]>(`/guidelines${qs ? `?${qs}` : ""}`);
+}
+
+/** 추적 불필요 항목을 수집 제외 처리한다. 목록에서 숨기고 재수집도 막는다. */
+export async function excludeGuideline(
+  id: number,
+  body: { category: ExclusionCategory; note?: string },
+): Promise<Guideline> {
+  return apiFetch<Guideline>(`/guidelines/${id}/exclude`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function restoreGuideline(id: number): Promise<Guideline> {
+  return apiFetch<Guideline>(`/guidelines/${id}/restore`, { method: "POST" });
 }
 
 export async function fetchLegalBases(params?: {
@@ -274,4 +305,41 @@ export async function fetchKeywordMeta(
 ): Promise<KeywordMeta> {
   const all = await apiFetch<Record<string, KeywordMeta>>("/meta/keywords");
   return all[itemType];
+}
+
+// ── 제외 분석 ───────────────────────────────────────────
+
+export interface RuleCandidate {
+  id: number;
+  pattern: string;
+  category: ExclusionCategory | null;
+  /** 이 패턴에 걸리는 제외 항목 수 (규칙의 근거) */
+  support_count: number;
+  /** 이 패턴에 걸리는 활성 항목 수 — 0이 아니면 승인 불가 */
+  false_positive_count: number;
+  sample_titles: string[];
+  status: "pending" | "approved" | "rejected";
+  reviewed_at: string | null;
+}
+
+export interface ExclusionAnalysis {
+  excluded_count: number;
+  by_category: Record<string, number>;
+  candidates: RuleCandidate[];
+  note: string;
+}
+
+export async function fetchExclusionAnalysis(): Promise<ExclusionAnalysis> {
+  return apiFetch<ExclusionAnalysis>("/meta/exclusion-analysis");
+}
+
+/** 규칙 후보 승인/반려. 승인해야 필터에 반영된다. */
+export async function reviewRuleCandidate(
+  id: number,
+  approve: boolean,
+): Promise<RuleCandidate> {
+  return apiFetch<RuleCandidate>(
+    `/meta/exclusion-rules/${id}/review?approve=${approve}`,
+    { method: "POST" },
+  );
 }

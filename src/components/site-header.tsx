@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: "/announcements", label: "보도·발표" },
   { href: "/versions", label: "변경 이력" },
   { href: "/agencies", label: "추적 기관" },
+  { href: "/excluded", label: "제외함" },
 ];
 
 function ThemeToggle() {

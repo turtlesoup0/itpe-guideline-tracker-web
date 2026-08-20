@@ -7,8 +7,16 @@ import { CategoryDot, CategoryTag } from "@/components/category-dot";
 import { Tag } from "@/components/ui/tag";
 import { CATEGORY_ORDER, categoryLabel } from "@/lib/categories";
 import { cn } from "@/lib/utils";
-import { fetchGuidelines, fetchAgencies, type Guideline, type Agency } from "@/lib/api";
+import {
+  fetchGuidelines,
+  fetchAgencies,
+  restoreGuideline,
+  type Guideline,
+  type Agency,
+  type ExclusionCategory,
+} from "@/lib/api";
 import { KeywordInfo } from "@/components/keyword-info";
+import { ExcludeMenu, EXCLUSION_LABEL } from "@/components/exclude-menu";
 
 /** 표 밀도를 위해 게시일은 연·월까지만 (2026.08) */
 function formatYearMonth(dateStr: string | null): string {
@@ -71,6 +79,10 @@ export default function GuidelinesPage() {
   const [groupByAgency, setGroupByAgency] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState("");
   const [agencyFilter, setAgencyFilter] = useState("");
+  // 방금 제외한 항목 — 오조작을 즉시 되돌릴 수 있게 한 건만 기억한다
+  const [lastExcluded, setLastExcluded] = useState<
+    { id: number; title: string; category: ExclusionCategory } | null
+  >(null);
 
   useEffect(() => {
     Promise.all([fetchGuidelines({ item_type: "guideline" }), fetchAgencies()])
@@ -147,6 +159,27 @@ export default function GuidelinesPage() {
     agencyFilter,
   ]);
 
+  function handleExcluded({
+    id,
+    category,
+  }: {
+    id: number;
+    category: ExclusionCategory;
+  }) {
+    const target = guidelines.find((g) => g.id === id);
+    setGuidelines((prev) => prev.filter((g) => g.id !== id));
+    setLastExcluded({ id, title: target?.title ?? "", category });
+  }
+
+  async function undoExclude() {
+    if (!lastExcluded) return;
+    const restored = await restoreGuideline(lastExcluded.id);
+    setGuidelines((prev) =>
+      [...prev, restored].sort((a, b) => a.title.localeCompare(b.title, "ko")),
+    );
+    setLastExcluded(null);
+  }
+
   const hasFilter = !!(search || categoryFilter || agencyFilter);
   const resetFilters = () => {
     setSearch("");
@@ -191,6 +224,34 @@ export default function GuidelinesPage() {
 
       {error && (
         <Card className="gap-0 px-4 py-5 text-sm text-warning">백엔드 연결 실패: {error}</Card>
+      )}
+
+      {lastExcluded && (
+        <Card className="flex flex-row items-center gap-3 gap-0 px-4 py-2.5">
+          <span className="min-w-0 flex-1 truncate text-[13px]">
+            <span className="text-muted-foreground">
+              제외됨 · {EXCLUSION_LABEL[lastExcluded.category]}
+            </span>
+            <span className="ml-2">{lastExcluded.title}</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => void undoExclude()}
+            className="shrink-0 text-xs font-medium text-primary hover:underline"
+          >
+            되돌리기
+          </button>
+          <button
+            type="button"
+            onClick={() => setLastExcluded(null)}
+            aria-label="닫기"
+            className="shrink-0 text-faint hover:text-foreground"
+          >
+            <svg className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </Card>
       )}
 
       {!error && guidelines.length > 0 && (
@@ -334,6 +395,9 @@ export default function GuidelinesPage() {
                 <th className="w-[58px] border-b px-3.5 py-2.5 text-center font-medium">
                   원문
                 </th>
+                <th className="w-[46px] border-b px-3.5 py-2.5 text-center font-medium">
+                  제외
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -373,6 +437,9 @@ export default function GuidelinesPage() {
                   <td className="border-b px-3.5 py-2 text-center">
                     {gl.source_url && <SourceLink url={gl.source_url} />}
                   </td>
+                  <td className="border-b px-3.5 py-2 text-center">
+                    <ExcludeMenu guidelineId={gl.id} onExcluded={handleExcluded} />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -393,6 +460,7 @@ export default function GuidelinesPage() {
                   {gl.title}
                 </Link>
                 {gl.source_url && <SourceLink url={gl.source_url} />}
+                <ExcludeMenu guidelineId={gl.id} onExcluded={handleExcluded} />
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <CategoryTag category={gl.category} />
